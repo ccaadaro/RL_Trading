@@ -38,6 +38,64 @@ def _sharpe_ratio(nav: np.ndarray) -> float:
     return (rets.mean() / (rets.std() + 1e-9)) * np.sqrt(8_760)
 
 
+class ActionTrackingCallback(BaseCallback):
+    """Track action distribution over time"""
+    def __init__(self, eval_env, check_freq=10000, verbose=1):
+        super().__init__(verbose)
+        self.check_freq = check_freq
+        self.eval_env = eval_env
+        self.action_counts = [0, 0, 0]  # For [-1, 0, 1]
+        
+    def _on_step(self):
+        if self.n_calls % self.check_freq == 0:
+            # Reset counters periodically to see recent trends
+            prev_counts = self.action_counts.copy()
+            self.action_counts = [0, 0, 0]
+            
+            # Run a short evaluation to see action distribution
+            if self.n_calls > 0:
+                obs = self.eval_env.reset()[0]
+                for _ in range(100):
+                    action, _ = self.model.predict(obs, deterministic=False)
+                    
+                    # Get the action index for tracking
+                    if isinstance(action, np.ndarray) and len(action.shape) > 0:
+                        action_idx = int(action[0])
+                    else:
+                        action_idx = int(action)
+                        
+                    self.action_counts[action_idx] += 1
+                    
+                    # Ensure action is properly formatted for VecEnv
+                    if not isinstance(action, np.ndarray) or action.shape == ():
+                        action_vec = np.array([action_idx])
+                    else:
+                        action_vec = action  # Already in correct format
+                    
+                    # FIXED: Proper unpacking for VecEnv step return values (4 values, not 5)
+                    obs, rewards, dones, infos = self.eval_env.step(action_vec)
+                    done = dones[0]  # Get the done flag for the first (only) environment
+                    if done:
+                        obs = self.eval_env.reset()[0]
+                    
+                print(f"\n--- Action Distribution at step {self.n_calls} ---")
+                print(f"SHORT: {self.action_counts[0]}%, HOLD: {self.action_counts[1]}%, LONG: {self.action_counts[2]}%")
+                
+                # Entropy adjustment logic
+                if max(self.action_counts) > 90:
+                    print("⚠️ ACTION DIVERSITY CRISIS - INCREASING ENTROPY")
+                    self.model.ent_coef = max(0.1, float(self.model.ent_coef) * 2)
+                elif max(self.action_counts) < 60:
+                    if hasattr(self.model, 'ent_coef') and not callable(self.model.ent_coef):
+                        current_ent = float(self.model.ent_coef)
+                        if current_ent > 0.005:
+                            self.model.ent_coef = current_ent * 0.9
+        
+        return True
+
+
+
+
 
 class DetailedLoggingCallback(BaseCallback):
     """Logs detailed metrics during training"""
@@ -404,7 +462,7 @@ def make_walk_forward_splits(df, train_hours=24*210, val_hours=24*60, step_hours
 # -----------------------------------------
 # 1. VELAS 1H
 # -----------------------------------------
-candles = pd.read_json("../data/binance/BTC_USDT-1h.json", orient="records")
+candles = pd.read_json("../../data/binance/BTC_USDT-1h.json", orient="records")
 candles.columns = ["timestamp", "open", "high", "low", "close", "volume"]
 candles["date"] = pd.to_datetime(candles["timestamp"], unit="ms")
 candles.set_index("date", inplace=True)
@@ -416,7 +474,7 @@ candles.drop(columns="timestamp", inplace=True)
 cols = ["timestamp", "side", "price", "amount", "cost"]         # solo útiles
 dtypes = {"price":"float32", "amount":"float32", "cost":"float32"}
 
-trades = pd.read_feather("../data/binance/BTC_USDT-trades.feather",
+trades = pd.read_feather("../../data/binance/BTC_USDT-trades.feather",
                          columns=cols)
 trades = trades.astype(dtypes)
 trades["side"] = trades["side"].astype("category")              # 2 bytes por fila
@@ -675,6 +733,11 @@ def cosine_lr(progress, base=3e-5, min_lr=5e-6):
 
 
 def make_env(slice_df, name):
+    # Rename the column to match what the reward function expects
+    if 'market_regime_code' not in slice_df.columns and 'market_regime_feature' in slice_df.columns:
+        slice_df = slice_df.copy()
+        slice_df['market_regime_code'] = slice_df['market_regime_feature']
+    
     base = TradingEnv(
         slice_df,
         positions=[-1, 0, 1],  
@@ -683,7 +746,6 @@ def make_env(slice_df, name):
         windows=24,
         name=name
     )
-    # Use AdaptiveRiskLimit with more aggressive parameters
     return AdaptiveRiskLimit(base, base_leverage=1.8, volatility_window=144)
 
 # Custom learning rate schedule
@@ -697,11 +759,14 @@ from stable_baselines3 import PPO
 
 
 def ent_schedule(progress):
-    # Higher entropy for better exploration
-    start_ent = 0.02  # Increased from 0.01
-    end_ent = 3e-4    # Increased from 1e-4
-    # Slower decay - linear instead of quadratic
-    return end_ent + (start_ent - end_ent) * progress  # Linear decay
+    # Higher starting entropy for much stronger exploration
+    start_ent = 0.1  # Even higher (from 0.05)
+    end_ent = 0.001   
+    
+    # Slower decay with quadratic falloff
+    decay = progress**1.5  # Power > 1 makes it fall off slower initially
+    
+    return end_ent + (start_ent - end_ent) * decay  
 
 def analyze_feature_importance(train_df, val_df, feature_cols):
     """Analyze and rank features by importance using correlation with returns"""
@@ -773,6 +838,19 @@ def add_advanced_regime_features(df):
     
     return df
 
+def clean_dataframe(df, cols):
+    for col in cols:
+        # Replace inf/-inf with NaN first
+        df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+        # Fill NaNs with column median for numeric features
+        if df[col].dtype.kind in 'ifc':  # integer, float or complex
+            median = df[col].median()
+            # If median is NaN, use 0
+            if pd.isna(median):
+                median = 0
+            df[col] = df[col].fillna(median)
+    return df
+
 
 df = add_advanced_regime_features(df)
 results = []
@@ -787,6 +865,13 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
     
     # Keep only the base columns and selected features
     base_cols = ['open', 'high', 'low', 'close', 'volume', 'amount']
+    required_cols = ['market_regime_code']
+    for col in required_cols:
+        if col in train_df.columns and col not in base_cols and col not in selected_features:
+            selected_features.append(col)
+
+    train_df = train_df[base_cols + selected_features]
+    val_df = val_df[base_cols + selected_features]
     train_df = train_df[base_cols + selected_features]
     val_df = val_df[base_cols + selected_features]
     
@@ -801,6 +886,10 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
         # Update selected features to exclude dropped columns
         selected_features = [f for f in selected_features if f not in drop_cols]
     
+
+    train_df = clean_dataframe(train_df, train_df.columns)
+    val_df = clean_dataframe(val_df, val_df.columns)
+
     # Apply scaling to the final set of selected features
     scaler = RobustScaler(quantile_range=(25, 75))
     train_df[selected_features] = scaler.fit_transform(train_df[selected_features])
@@ -826,41 +915,40 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
     policy_kwargs = dict(
         features_extractor_class=TransformerFeatures,
         features_extractor_kwargs=dict(
-            embed_dim=192,     # Double embedding dimension for more expressiveness
-            n_heads=6,         # More attention heads to capture complex relationships
-            num_layers=3,      # Add one more layer for deeper pattern recognition
-            ff_dim=512,        # Increased feed-forward dimension
-            dropout=0.1        # Lower dropout - we want to learn, not just regularize
+            embed_dim=128,     # Reduced to avoid overflow
+            n_heads=4,         # Fewer heads reduce chance of numerical issues
+            num_layers=2,      # Shallow network
+            ff_dim=256,        # Smaller feed-forward layer
+            dropout=0.1
         ),
         net_arch=dict(
-            pi=[256, 128, 64],  # Deeper actor network
-            vf=[384, 192, 96]   # Deeper critic network for better value estimation
+            pi=[128, 64],      # Smaller actor network
+            vf=[256, 128]      # Smaller critic network
         ),
-        activation_fn=torch.nn.Mish,
+        activation_fn=torch.nn.ReLU,  # ReLU is more stable than Mish
         ortho_init=True
     )
     
     INIT_ENT = ent_schedule(1.0)      # valor al principio (progress=1)
 
     # –– Modelo nuevo por fold
+    # 3. More conservative PPO parameters
     model = PPO(
         policy=ActorCriticPolicy,
         env=train_env,
-        n_steps=16_384,
-        batch_size=2048,      # Smaller batches = more updates
-        n_epochs=12,          # More optimization per batch
-        learning_rate=cosine_lr,
-        clip_range=0.15,      # Increased from 0.1 for more policy improvement
-        clip_range_vf=0.2,    # Add value function clipping
-        vf_coef=0.6,          # Increased to focus more on value function accuracy
+        n_steps=2048,        # Smaller steps for more frequent updates
+        batch_size=128,      # Smaller batches for better gradient estimates
+        n_epochs=10,
+        learning_rate=3e-4,  # Higher learning rate
+        clip_range=0.2,      # More aggressive clipping to allow bigger updates
         ent_coef=ent_schedule,
-        target_kl=0.02,       # Slightly reduced
-        gamma=0.999,          # Slightly reduced for more focus on near-term rewards
-        gae_lambda=0.95,      # Increased for better advantage estimation
-        max_grad_norm=0.8,    # Allow larger updates
+        target_kl=0.03,      # More relaxed KL divergence target
+        gamma=0.99,
+        gae_lambda=0.95,
+        max_grad_norm=1.0,   # Allow larger gradient steps
         verbose=0,
         device="cpu",
-        tensorboard_log="logs_gemini"
+        tensorboard_log="logs_fixed"
     )
 
 
@@ -874,6 +962,7 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
 
     callbacks = CallbackList([
         EntropyDecay(ent_schedule, total_ts=800_000),  # Double training time
+        ActionTrackingCallback(val_env, check_freq=5000),
         EarlyStopKL(kl_threshold=1e-4,  # Lower threshold
                     patience=10,        # More patience
                     warmup_rollouts=25, # More warmup

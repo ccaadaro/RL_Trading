@@ -1,0 +1,4030 @@
+Index(['open', 'high', 'low', 'close', 'volume', 'amount', 'buy_vol',
+       'sell_vol', 'buy_cost', 'sell_cost', 'price', 'trades_n',
+       'vol_imbalance_feature', 'dollar_delta_feature', 'fng_feature',
+       'atr_feature', 'volatility_20_feature', 'hour_sin', 'hour_cos',
+       'dow_sin', 'dow_cos', 'obv_feature', 'vwap_feature', 'mfi_feature',
+       'cci_feature', 'stoch_k_feature', 'stoch_d_feature',
+       'daily_rsi_feature', 'ret_1h_feature', 'ret_24h_feature',
+       'volume_z_feature', 'amount_z_feature', 'buy_vol_z_feature',
+       'sell_vol_z_feature', 'buy_cost_z_feature', 'sell_cost_z_feature',
+       'spread_ratio', 'whale_flow', 'ppo_ppo_12_26_9_feature',
+       'ppo_ppoh_12_26_9_feature', 'ppo_ppos_12_26_9_feature',
+       'kst_kst_10_15_20_30_10_10_10_15_feature', 'kst_ksts_9_feature',
+       'market_regime_feature', 'market_regime_code', 'at_resistance_feature',
+       'at_support_feature', 'range_position_feature',
+       'price_vol_divergence_feature'],
+      dtype='object')
+
+============= FOLD 0 =============
+Feature importance analysis:
+
+Top 15 most important features:
+  at_resistance_feature: 0.1409
+  at_support_feature: 0.1032
+  fng_feature: 0.0390
+  daily_rsi_feature: 0.0382
+  atr_feature: 0.0285
+  vol_imbalance_feature: 0.0273
+  ret_1h_feature: 0.0217
+  vol_regime_36h_feature: 0.0208
+  sell_vol_z_feature: 0.0193
+  volatility_20_feature: 0.0170
+  vol_regime_72h_feature: 0.0167
+  sell_cost_z_feature: 0.0152
+  vol_regime_12h_feature: 0.0145
+  ret_24h_feature: 0.0126
+  ppo_ppoh_12_26_9_feature: 0.0125
+
+Bottom 15 least important features:
+  ppo_ppos_12_26_9_feature: 0.0067
+  trend_strength_feature: 0.0060
+  adx_feature: 0.0060
+  kst_ksts_9_feature: 0.0059
+  amount_z_feature: 0.0057
+  volume_z_feature: 0.0057
+  stoch_k_feature: 0.0055
+  kst_kst_10_15_20_30_10_10_10_15_feature: 0.0044
+  price_vol_divergence_feature: 0.0039
+  volume_regime_feature: 0.0039
+  market_regime_feature: 0.0017
+  range_position_feature: 0.0016
+  vwap_feature: 0.0015
+  ppo_ppo_12_26_9_feature: 0.0012
+  stoch_d_feature: 0.0002
+
+Keeping 19/38 features with correlation > 0.01
+ Drop features: ['volatility_20_feature', 'ret_1h_feature']
+<function get_schedule_fn.<locals>.<lambda> at 0x7b72af1ded40> None 0.5 0.03 <function ent_schedule at 0x7b730daf9120>
+
+--- Action Distribution at step 5000 ---
+SHORT: 29%, HOLD: 29%, LONG: 42%
+Market Return : 59.45%   |   Portfolio Return : -10.68%   |   
+
+--- Action Distribution at step 10000 ---
+SHORT: 25%, HOLD: 37%, LONG: 38%
+
+--- Training Stats at step 10000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 60.43%   |   
+
+--- Action Distribution at step 15000 ---
+SHORT: 41%, HOLD: 29%, LONG: 30%
+Market Return : 59.45%   |   Portfolio Return :  7.74%   |   
+
+--- Action Distribution at step 20000 ---
+SHORT: 34%, HOLD: 25%, LONG: 41%
+
+--- Training Stats at step 20000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 84.46%   |   
+
+--- Action Distribution at step 25000 ---
+SHORT: 36%, HOLD: 27%, LONG: 37%
+Market Return : 59.45%   |   Portfolio Return : 126.42%   |   
+
+--- Action Distribution at step 30000 ---
+SHORT: 40%, HOLD: 27%, LONG: 33%
+
+--- Training Stats at step 30000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 104.96%   |   
+
+--- Action Distribution at step 35000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+Market Return : 59.45%   |   Portfolio Return : 133.21%   |   
+
+--- Action Distribution at step 40000 ---
+SHORT: 32%, HOLD: 35%, LONG: 33%
+
+--- Training Stats at step 40000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 134.73%   |   
+
+--- Action Distribution at step 45000 ---
+SHORT: 32%, HOLD: 34%, LONG: 34%
+Market Return : 59.45%   |   Portfolio Return : 113.88%   |   
+
+--- Action Distribution at step 50000 ---
+SHORT: 26%, HOLD: 44%, LONG: 30%
+
+--- Training Stats at step 50000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 44.63%   |   
+[VAL] step=50,000 sharpe: 5.9945
+  ↳ New best model saved to best_fold0.zip
+Market Return : 59.45%   |   Portfolio Return : 208.62%   |   
+
+--- Action Distribution at step 55000 ---
+SHORT: 26%, HOLD: 39%, LONG: 35%
+Market Return : 59.45%   |   Portfolio Return : 161.13%   |   
+
+--- Action Distribution at step 60000 ---
+SHORT: 30%, HOLD: 38%, LONG: 32%
+
+--- Training Stats at step 60000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 161.47%   |   
+
+--- Action Distribution at step 65000 ---
+SHORT: 22%, HOLD: 46%, LONG: 32%
+Market Return : 59.45%   |   Portfolio Return : 205.55%   |   
+
+--- Action Distribution at step 70000 ---
+SHORT: 35%, HOLD: 34%, LONG: 31%
+
+--- Training Stats at step 70000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 239.05%   |   
+
+--- Action Distribution at step 75000 ---
+SHORT: 32%, HOLD: 42%, LONG: 26%
+Market Return : 59.45%   |   Portfolio Return : 203.49%   |   
+
+--- Action Distribution at step 80000 ---
+SHORT: 27%, HOLD: 41%, LONG: 32%
+
+--- Training Stats at step 80000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 187.00%   |   
+
+--- Action Distribution at step 85000 ---
+SHORT: 21%, HOLD: 47%, LONG: 32%
+Market Return : 59.45%   |   Portfolio Return : 184.91%   |   
+
+--- Action Distribution at step 90000 ---
+SHORT: 21%, HOLD: 45%, LONG: 34%
+
+--- Training Stats at step 90000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 191.06%   |   
+
+--- Action Distribution at step 95000 ---
+SHORT: 27%, HOLD: 36%, LONG: 37%
+Market Return : 59.45%   |   Portfolio Return : 270.90%   |   
+
+--- Action Distribution at step 100000 ---
+SHORT: 26%, HOLD: 42%, LONG: 32%
+
+--- Training Stats at step 100000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 39.01%   |   
+[VAL] step=100,000 sharpe: 5.3181
+Market Return : 59.45%   |   Portfolio Return : 173.94%   |   
+
+--- Action Distribution at step 105000 ---
+SHORT: 27%, HOLD: 49%, LONG: 24%
+Market Return : 59.45%   |   Portfolio Return : 269.58%   |   
+
+--- Action Distribution at step 110000 ---
+SHORT: 26%, HOLD: 46%, LONG: 28%
+
+--- Training Stats at step 110000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 145.11%   |   
+
+--- Action Distribution at step 115000 ---
+SHORT: 20%, HOLD: 51%, LONG: 29%
+Market Return : 59.45%   |   Portfolio Return : 314.01%   |   
+
+--- Action Distribution at step 120000 ---
+SHORT: 32%, HOLD: 44%, LONG: 24%
+
+--- Training Stats at step 120000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 144.07%   |   
+
+--- Action Distribution at step 125000 ---
+SHORT: 29%, HOLD: 43%, LONG: 28%
+Market Return : 59.45%   |   Portfolio Return : 207.22%   |   
+
+--- Action Distribution at step 130000 ---
+SHORT: 26%, HOLD: 34%, LONG: 40%
+
+--- Training Stats at step 130000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 142.80%   |   
+
+--- Action Distribution at step 135000 ---
+SHORT: 26%, HOLD: 43%, LONG: 31%
+Market Return : 59.45%   |   Portfolio Return : 213.75%   |   
+
+--- Action Distribution at step 140000 ---
+SHORT: 35%, HOLD: 35%, LONG: 30%
+
+--- Training Stats at step 140000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 117.08%   |   
+
+--- Action Distribution at step 145000 ---
+SHORT: 28%, HOLD: 35%, LONG: 37%
+Market Return : 59.45%   |   Portfolio Return : 191.66%   |   
+
+--- Action Distribution at step 150000 ---
+SHORT: 26%, HOLD: 28%, LONG: 46%
+
+--- Training Stats at step 150000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 30.81%   |   
+[VAL] step=150,000 sharpe: 4.5507
+Market Return : 59.45%   |   Portfolio Return : 225.63%   |   
+
+--- Action Distribution at step 155000 ---
+SHORT: 23%, HOLD: 44%, LONG: 33%
+Market Return : 59.45%   |   Portfolio Return : 211.25%   |   
+
+--- Action Distribution at step 160000 ---
+SHORT: 34%, HOLD: 39%, LONG: 27%
+
+--- Training Stats at step 160000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 135.56%   |   
+
+--- Action Distribution at step 165000 ---
+SHORT: 37%, HOLD: 29%, LONG: 34%
+Market Return : 59.45%   |   Portfolio Return : 170.08%   |   
+
+--- Action Distribution at step 170000 ---
+SHORT: 41%, HOLD: 27%, LONG: 32%
+
+--- Training Stats at step 170000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 228.69%   |   
+
+--- Action Distribution at step 175000 ---
+SHORT: 34%, HOLD: 30%, LONG: 36%
+Market Return : 59.45%   |   Portfolio Return : 115.35%   |   
+
+--- Action Distribution at step 180000 ---
+SHORT: 34%, HOLD: 39%, LONG: 27%
+
+--- Training Stats at step 180000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 152.61%   |   
+
+--- Action Distribution at step 185000 ---
+SHORT: 38%, HOLD: 26%, LONG: 36%
+Market Return : 59.45%   |   Portfolio Return : 121.37%   |   
+
+--- Action Distribution at step 190000 ---
+SHORT: 29%, HOLD: 42%, LONG: 29%
+
+--- Training Stats at step 190000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 140.50%   |   
+
+--- Action Distribution at step 195000 ---
+SHORT: 40%, HOLD: 29%, LONG: 31%
+Market Return : 59.45%   |   Portfolio Return : 172.60%   |   
+
+--- Action Distribution at step 200000 ---
+SHORT: 35%, HOLD: 35%, LONG: 30%
+
+--- Training Stats at step 200000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 16.40%   |   
+[VAL] step=200,000 sharpe: 2.8216
+Market Return : 59.45%   |   Portfolio Return : 139.87%   |   
+
+--- Action Distribution at step 205000 ---
+SHORT: 28%, HOLD: 36%, LONG: 36%
+Market Return : 59.45%   |   Portfolio Return : 250.40%   |   
+
+--- Action Distribution at step 210000 ---
+SHORT: 29%, HOLD: 41%, LONG: 30%
+
+--- Training Stats at step 210000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 93.90%   |   
+
+--- Action Distribution at step 215000 ---
+SHORT: 30%, HOLD: 39%, LONG: 31%
+Market Return : 59.45%   |   Portfolio Return : 117.28%   |   
+
+--- Action Distribution at step 220000 ---
+SHORT: 28%, HOLD: 36%, LONG: 36%
+
+--- Training Stats at step 220000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 122.24%   |   
+
+--- Action Distribution at step 225000 ---
+SHORT: 31%, HOLD: 39%, LONG: 30%
+Market Return : 59.45%   |   Portfolio Return : 128.69%   |   
+
+--- Action Distribution at step 230000 ---
+SHORT: 27%, HOLD: 47%, LONG: 26%
+
+--- Training Stats at step 230000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 174.81%   |   
+
+--- Action Distribution at step 235000 ---
+SHORT: 23%, HOLD: 60%, LONG: 17%
+Market Return : 59.45%   |   Portfolio Return : 185.13%   |   
+
+--- Action Distribution at step 240000 ---
+SHORT: 36%, HOLD: 50%, LONG: 14%
+
+--- Training Stats at step 240000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 167.19%   |   
+
+--- Action Distribution at step 245000 ---
+SHORT: 31%, HOLD: 43%, LONG: 26%
+Market Return : 59.45%   |   Portfolio Return : 237.45%   |   
+
+--- Action Distribution at step 250000 ---
+SHORT: 35%, HOLD: 30%, LONG: 35%
+
+--- Training Stats at step 250000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 12.19%   |   
+[VAL] step=250,000 sharpe: 2.5630
+Market Return : 59.45%   |   Portfolio Return : 196.66%   |   
+
+--- Action Distribution at step 255000 ---
+SHORT: 25%, HOLD: 44%, LONG: 31%
+Market Return : 59.45%   |   Portfolio Return : 169.51%   |   
+
+--- Action Distribution at step 260000 ---
+SHORT: 33%, HOLD: 35%, LONG: 32%
+
+--- Training Stats at step 260000 ---
+Recent reward mean: 0.0077, std: 0.0438
+Action distribution: [99  0  1]
+Value estimate mean: 0.5810, std: 3.3042
+Market Return : 59.45%   |   Portfolio Return : 153.33%   |   
+
+--- Action Distribution at step 265000 ---
+SHORT: 38%, HOLD: 26%, LONG: 36%
+Market Return : 59.45%   |   Portfolio Return : 144.73%   |   
+
+--- Action Distribution at step 270000 ---
+SHORT: 29%, HOLD: 35%, LONG: 36%
+
+--- Training Stats at step 270000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 187.80%   |   
+
+--- Action Distribution at step 275000 ---
+SHORT: 29%, HOLD: 37%, LONG: 34%
+Market Return : 59.45%   |   Portfolio Return : 119.00%   |   
+
+--- Action Distribution at step 280000 ---
+SHORT: 30%, HOLD: 31%, LONG: 39%
+
+--- Training Stats at step 280000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 165.95%   |   
+
+--- Action Distribution at step 285000 ---
+SHORT: 33%, HOLD: 29%, LONG: 38%
+Market Return : 59.45%   |   Portfolio Return : 150.45%   |   
+
+--- Action Distribution at step 290000 ---
+SHORT: 24%, HOLD: 43%, LONG: 33%
+
+--- Training Stats at step 290000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 208.01%   |   
+
+--- Action Distribution at step 295000 ---
+SHORT: 25%, HOLD: 34%, LONG: 41%
+Market Return : 59.45%   |   Portfolio Return : 289.01%   |   
+
+--- Action Distribution at step 300000 ---
+SHORT: 20%, HOLD: 35%, LONG: 45%
+
+--- Training Stats at step 300000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 45.72%   |   
+[VAL] step=300,000 sharpe: 6.9317
+  ↳ New best model saved to best_fold0.zip
+Market Return : 59.45%   |   Portfolio Return : 271.69%   |   
+
+--- Action Distribution at step 305000 ---
+SHORT: 30%, HOLD: 32%, LONG: 38%
+Market Return : 59.45%   |   Portfolio Return : 195.37%   |   
+
+--- Action Distribution at step 310000 ---
+SHORT: 27%, HOLD: 30%, LONG: 43%
+
+--- Training Stats at step 310000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 332.64%   |   
+
+--- Action Distribution at step 315000 ---
+SHORT: 20%, HOLD: 37%, LONG: 43%
+Market Return : 59.45%   |   Portfolio Return : 294.83%   |   
+
+--- Action Distribution at step 320000 ---
+SHORT: 20%, HOLD: 33%, LONG: 47%
+
+--- Training Stats at step 320000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 215.97%   |   
+
+--- Action Distribution at step 325000 ---
+SHORT: 19%, HOLD: 33%, LONG: 48%
+Market Return : 59.45%   |   Portfolio Return : 354.83%   |   
+
+--- Action Distribution at step 330000 ---
+SHORT: 23%, HOLD: 33%, LONG: 44%
+
+--- Training Stats at step 330000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 322.87%   |   
+
+--- Action Distribution at step 335000 ---
+SHORT: 23%, HOLD: 31%, LONG: 46%
+Market Return : 59.45%   |   Portfolio Return : 505.49%   |   
+
+--- Action Distribution at step 340000 ---
+SHORT: 27%, HOLD: 35%, LONG: 38%
+
+--- Training Stats at step 340000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 385.56%   |   
+
+--- Action Distribution at step 345000 ---
+SHORT: 26%, HOLD: 36%, LONG: 38%
+Market Return : 59.45%   |   Portfolio Return : 368.10%   |   
+
+--- Action Distribution at step 350000 ---
+SHORT: 29%, HOLD: 37%, LONG: 34%
+
+--- Training Stats at step 350000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 12.24%   |   
+[VAL] step=350,000 sharpe: 2.2755
+Market Return : 59.45%   |   Portfolio Return : 363.40%   |   
+
+--- Action Distribution at step 355000 ---
+SHORT: 22%, HOLD: 36%, LONG: 42%
+Market Return : 59.45%   |   Portfolio Return : 363.33%   |   
+
+--- Action Distribution at step 360000 ---
+SHORT: 28%, HOLD: 29%, LONG: 43%
+
+--- Training Stats at step 360000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 462.49%   |   
+
+--- Action Distribution at step 365000 ---
+SHORT: 34%, HOLD: 30%, LONG: 36%
+Market Return : 59.45%   |   Portfolio Return : 325.35%   |   
+
+--- Action Distribution at step 370000 ---
+SHORT: 34%, HOLD: 32%, LONG: 34%
+
+--- Training Stats at step 370000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 399.88%   |   
+
+--- Action Distribution at step 375000 ---
+SHORT: 26%, HOLD: 31%, LONG: 43%
+Market Return : 59.45%   |   Portfolio Return : 382.90%   |   
+
+--- Action Distribution at step 380000 ---
+SHORT: 28%, HOLD: 25%, LONG: 47%
+
+--- Training Stats at step 380000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 434.94%   |   
+
+--- Action Distribution at step 385000 ---
+SHORT: 29%, HOLD: 30%, LONG: 41%
+Market Return : 59.45%   |   Portfolio Return : 497.54%   |   
+
+--- Action Distribution at step 390000 ---
+SHORT: 17%, HOLD: 27%, LONG: 56%
+
+--- Training Stats at step 390000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 420.86%   |   
+
+--- Action Distribution at step 395000 ---
+SHORT: 19%, HOLD: 31%, LONG: 50%
+Market Return : 59.45%   |   Portfolio Return : 363.56%   |   
+
+--- Action Distribution at step 400000 ---
+SHORT: 23%, HOLD: 31%, LONG: 46%
+
+--- Training Stats at step 400000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 23.26%   |   
+[VAL] step=400,000 sharpe: 4.1342
+Market Return : 59.45%   |   Portfolio Return : 299.02%   |   
+
+--- Action Distribution at step 405000 ---
+SHORT: 27%, HOLD: 35%, LONG: 38%
+Market Return : 59.45%   |   Portfolio Return : 311.84%   |   
+
+--- Action Distribution at step 410000 ---
+SHORT: 26%, HOLD: 41%, LONG: 33%
+
+--- Training Stats at step 410000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 278.22%   |   
+
+--- Action Distribution at step 415000 ---
+SHORT: 24%, HOLD: 27%, LONG: 49%
+Market Return : 59.45%   |   Portfolio Return : 291.93%   |   
+
+--- Action Distribution at step 420000 ---
+SHORT: 26%, HOLD: 28%, LONG: 46%
+
+--- Training Stats at step 420000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 334.22%   |   
+
+--- Action Distribution at step 425000 ---
+SHORT: 30%, HOLD: 33%, LONG: 37%
+Market Return : 59.45%   |   Portfolio Return : 346.60%   |   
+
+--- Action Distribution at step 430000 ---
+SHORT: 26%, HOLD: 31%, LONG: 43%
+
+--- Training Stats at step 430000 ---
+Recent reward mean: 0.0397, std: 0.0829
+Action distribution: [94  1  5]
+Value estimate mean: 3.2374, std: 6.6873
+Market Return : 59.45%   |   Portfolio Return : 357.58%   |   
+
+--- Action Distribution at step 435000 ---
+SHORT: 23%, HOLD: 31%, LONG: 46%
+Market Return : 59.45%   |   Portfolio Return : 313.79%   |   
+
+--- Action Distribution at step 440000 ---
+SHORT: 32%, HOLD: 21%, LONG: 47%
+
+--- Training Stats at step 440000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 293.36%   |   
+
+--- Action Distribution at step 445000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+Market Return : 59.45%   |   Portfolio Return : 402.77%   |   
+
+--- Action Distribution at step 450000 ---
+SHORT: 30%, HOLD: 24%, LONG: 46%
+
+--- Training Stats at step 450000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 17.81%   |   
+[VAL] step=450,000 sharpe: 2.9137
+Market Return : 59.45%   |   Portfolio Return : 339.86%   |   
+
+--- Action Distribution at step 455000 ---
+SHORT: 32%, HOLD: 16%, LONG: 52%
+Market Return : 59.45%   |   Portfolio Return : 365.70%   |   
+
+--- Action Distribution at step 460000 ---
+SHORT: 26%, HOLD: 17%, LONG: 57%
+
+--- Training Stats at step 460000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 386.83%   |   
+
+--- Action Distribution at step 465000 ---
+SHORT: 31%, HOLD: 27%, LONG: 42%
+Market Return : 59.45%   |   Portfolio Return : 282.68%   |   
+
+--- Action Distribution at step 470000 ---
+SHORT: 35%, HOLD: 30%, LONG: 35%
+
+--- Training Stats at step 470000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 384.04%   |   
+
+--- Action Distribution at step 475000 ---
+SHORT: 33%, HOLD: 30%, LONG: 37%
+Market Return : 59.45%   |   Portfolio Return : 443.94%   |   
+
+--- Action Distribution at step 480000 ---
+SHORT: 29%, HOLD: 25%, LONG: 46%
+
+--- Training Stats at step 480000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 511.35%   |   
+
+--- Action Distribution at step 485000 ---
+SHORT: 36%, HOLD: 16%, LONG: 48%
+Market Return : 59.45%   |   Portfolio Return : 404.08%   |   
+
+--- Action Distribution at step 490000 ---
+SHORT: 24%, HOLD: 22%, LONG: 54%
+
+--- Training Stats at step 490000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 373.76%   |   
+
+--- Action Distribution at step 495000 ---
+SHORT: 24%, HOLD: 17%, LONG: 59%
+Market Return : 59.45%   |   Portfolio Return : 412.19%   |   
+
+--- Action Distribution at step 500000 ---
+SHORT: 17%, HOLD: 23%, LONG: 60%
+
+--- Training Stats at step 500000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return : 16.76%   |   
+[VAL] step=500,000 sharpe: 2.2406
+Market Return : 59.45%   |   Portfolio Return : 497.22%   |   
+
+--- Action Distribution at step 505000 ---
+SHORT: 21%, HOLD: 18%, LONG: 61%
+Market Return : 59.45%   |   Portfolio Return : 291.52%   |   
+
+--- Action Distribution at step 510000 ---
+SHORT: 20%, HOLD: 23%, LONG: 57%
+
+--- Training Stats at step 510000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 400.53%   |   
+
+--- Action Distribution at step 515000 ---
+SHORT: 24%, HOLD: 20%, LONG: 56%
+Market Return : 59.45%   |   Portfolio Return : 374.36%   |   
+
+--- Action Distribution at step 520000 ---
+SHORT: 20%, HOLD: 19%, LONG: 61%
+
+--- Training Stats at step 520000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 478.16%   |   
+
+--- Action Distribution at step 525000 ---
+SHORT: 22%, HOLD: 24%, LONG: 54%
+Market Return : 59.45%   |   Portfolio Return : 355.63%   |   
+
+--- Action Distribution at step 530000 ---
+SHORT: 24%, HOLD: 25%, LONG: 51%
+
+--- Training Stats at step 530000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 420.81%   |   
+
+--- Action Distribution at step 535000 ---
+SHORT: 29%, HOLD: 19%, LONG: 52%
+Market Return : 59.45%   |   Portfolio Return : 515.32%   |   
+
+--- Action Distribution at step 540000 ---
+SHORT: 26%, HOLD: 15%, LONG: 59%
+
+--- Training Stats at step 540000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 529.52%   |   
+
+--- Action Distribution at step 545000 ---
+SHORT: 26%, HOLD: 12%, LONG: 62%
+Market Return : 59.45%   |   Portfolio Return : 372.91%   |   
+
+--- Action Distribution at step 550000 ---
+SHORT: 23%, HOLD: 18%, LONG: 59%
+
+--- Training Stats at step 550000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  1.59%   |   Portfolio Return :  8.53%   |   
+[VAL] step=550,000 sharpe: 1.3117
+Market Return : 59.45%   |   Portfolio Return : 394.97%   |   
+
+--- Action Distribution at step 555000 ---
+SHORT: 23%, HOLD: 20%, LONG: 57%
+Market Return : 59.45%   |   Portfolio Return : 381.71%   |   
+
+--- Action Distribution at step 560000 ---
+SHORT: 30%, HOLD: 13%, LONG: 57%
+
+--- Training Stats at step 560000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 483.75%   |   
+
+--- Action Distribution at step 565000 ---
+SHORT: 32%, HOLD: 14%, LONG: 54%
+Market Return : 59.45%   |   Portfolio Return : 429.42%   |   
+
+--- Action Distribution at step 570000 ---
+SHORT: 27%, HOLD: 17%, LONG: 56%
+
+--- Training Stats at step 570000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 479.67%   |   
+
+--- Action Distribution at step 575000 ---
+SHORT: 24%, HOLD: 16%, LONG: 60%
+Market Return : 59.45%   |   Portfolio Return : 437.55%   |   
+
+--- Action Distribution at step 580000 ---
+SHORT: 23%, HOLD: 24%, LONG: 53%
+
+--- Training Stats at step 580000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 545.21%   |   
+
+--- Action Distribution at step 585000 ---
+SHORT: 27%, HOLD: 18%, LONG: 55%
+Market Return : 59.45%   |   Portfolio Return : 401.76%   |   
+
+--- Action Distribution at step 590000 ---
+SHORT: 23%, HOLD: 20%, LONG: 57%
+
+--- Training Stats at step 590000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 59.45%   |   Portfolio Return : 465.18%   |   
+
+--- Action Distribution at step 595000 ---
+SHORT: 24%, HOLD: 19%, LONG: 57%
+Market Return : 59.45%   |   Portfolio Return : 473.10%   |   
+
+--- Action Distribution at step 600000 ---
+SHORT: 19%, HOLD: 25%, LONG: 56%
+
+--- Training Stats at step 600000 ---
+Recent reward mean: 0.0700, std: 0.1313
+Action distribution: [89  5  6]
+Value estimate mean: 8.2385, std: 11.2306
+Market Return :  1.59%   |   Portfolio Return : 33.60%   |   
+[VAL] step=600,000 sharpe: 5.3559
+[KL‑CB] ema_kl=3.32e-02  (1/10)
+Market Return : 59.45%   |   Portfolio Return : 554.25%   |   
+[KL‑CB] ema_kl=3.69e-02  (2/10)
+[KL‑CB] ema_kl=3.71e-02  (3/10)
+
+--- Action Distribution at step 605000 ---
+SHORT: 29%, HOLD: 26%, LONG: 45%
+[KL‑CB] ema_kl=3.70e-02  (4/10)
+Market Return : 59.45%   |   Portfolio Return : 625.94%   |   
+[KL‑CB] ema_kl=3.66e-02  (5/10)
+
+--- Action Distribution at step 610000 ---
+SHORT: 29%, HOLD: 21%, LONG: 50%
+
+--- Training Stats at step 610000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+[KL‑CB] ema_kl=3.72e-02  (6/10)
+Market Return : 59.45%   |   Portfolio Return : 514.24%   |   
+[KL‑CB] ema_kl=3.70e-02  (7/10)
+[KL‑CB] ema_kl=3.57e-02  (8/10)
+
+--- Action Distribution at step 615000 ---
+SHORT: 30%, HOLD: 29%, LONG: 41%
+[KL‑CB] ema_kl=3.50e-02  (9/10)
+Market Return : 59.45%   |   Portfolio Return : 541.51%   |   
+[KL‑CB] ema_kl=3.50e-02  (10/10)
+🟥 Early-stop por KL: sin cambios significativos 10 rollouts seguidos.
+Fold 0 | sharpe: 13.95
+Fold 0 | win-rate: 38.26%
+Fold 0 | profit_factor: 1.87
+Fold 0 | max_DD_dur.: 97 pasos
+Fold 0 | bull perf.: 0.00%
+Fold 0 | bear perf.: 56.68%
+Market Return :  1.59%   |   Portfolio Return : 21.90%   |   
+FOLD 0 extra metrics: {'annualized_sharpe': 0.0, 'win_rate': 0.0, 'profit_factor': 0.0, 'max_dd_duration': 0, 'regime_performance': {'bull': 0.0, 'bear': 0.0}}
+
+============= FOLD 1 =============
+Feature importance analysis:
+
+Top 15 most important features:
+  at_resistance_feature: 0.1381
+  at_support_feature: 0.1074
+  daily_rsi_feature: 0.0674
+  fng_feature: 0.0361
+  ret_1h_feature: 0.0261
+  vol_regime_36h_feature: 0.0236
+  vol_imbalance_feature: 0.0230
+  volatility_20_feature: 0.0226
+  atr_feature: 0.0219
+  vol_regime_72h_feature: 0.0203
+  sell_vol_z_feature: 0.0201
+  stoch_k_feature: 0.0171
+  ret_24h_feature: 0.0166
+  sell_cost_z_feature: 0.0159
+  obv_feature: 0.0129
+
+Bottom 15 least important features:
+  market_regime_feature: 0.0070
+  volume_regime_feature: 0.0067
+  price_vol_divergence_feature: 0.0054
+  buy_vol_z_feature: 0.0045
+  adx_feature: 0.0043
+  trend_strength_feature: 0.0043
+  dollar_delta_feature: 0.0040
+  ppo_ppos_12_26_9_feature: 0.0037
+  ppo_ppo_12_26_9_feature: 0.0036
+  vwap_feature: 0.0021
+  kst_kst_10_15_20_30_10_10_10_15_feature: 0.0017
+  mfi_feature: 0.0009
+  ppo_ppoh_12_26_9_feature: 0.0008
+  cci_feature: 0.0006
+  kst_ksts_9_feature: 0.0005
+
+Keeping 17/38 features with correlation > 0.01
+ Drop features: ['volatility_20_feature', 'ret_1h_feature']
+<function get_schedule_fn.<locals>.<lambda> at 0x7b72ae9fb240> None 0.5 0.03 <function ent_schedule at 0x7b730daf9120>
+
+--- Action Distribution at step 5000 ---
+SHORT: 30%, HOLD: 31%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 12.80%   |   
+
+--- Action Distribution at step 10000 ---
+SHORT: 35%, HOLD: 34%, LONG: 31%
+
+--- Training Stats at step 10000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : -19.46%   |   
+
+--- Action Distribution at step 15000 ---
+SHORT: 36%, HOLD: 27%, LONG: 37%
+Market Return : 41.02%   |   Portfolio Return : -3.49%   |   
+
+--- Action Distribution at step 20000 ---
+SHORT: 41%, HOLD: 25%, LONG: 34%
+
+--- Training Stats at step 20000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 46.81%   |   
+
+--- Action Distribution at step 25000 ---
+SHORT: 40%, HOLD: 32%, LONG: 28%
+Market Return : 41.02%   |   Portfolio Return : 87.56%   |   
+
+--- Action Distribution at step 30000 ---
+SHORT: 26%, HOLD: 45%, LONG: 29%
+
+--- Training Stats at step 30000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 137.76%   |   
+
+--- Action Distribution at step 35000 ---
+SHORT: 30%, HOLD: 34%, LONG: 36%
+Market Return : 41.02%   |   Portfolio Return : 124.04%   |   
+
+--- Action Distribution at step 40000 ---
+SHORT: 38%, HOLD: 26%, LONG: 36%
+
+--- Training Stats at step 40000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 82.24%   |   
+
+--- Action Distribution at step 45000 ---
+SHORT: 29%, HOLD: 23%, LONG: 48%
+Market Return : 41.02%   |   Portfolio Return : 120.01%   |   
+
+--- Action Distribution at step 50000 ---
+SHORT: 25%, HOLD: 23%, LONG: 52%
+
+--- Training Stats at step 50000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 22.24%   |   
+[VAL] step=50,000 sharpe: 2.4551
+  ↳ New best model saved to best_fold1.zip
+Market Return : 41.02%   |   Portfolio Return : 159.79%   |   
+
+--- Action Distribution at step 55000 ---
+SHORT: 29%, HOLD: 32%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 56.77%   |   
+
+--- Action Distribution at step 60000 ---
+SHORT: 17%, HOLD: 47%, LONG: 36%
+
+--- Training Stats at step 60000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 70.80%   |   
+
+--- Action Distribution at step 65000 ---
+SHORT: 22%, HOLD: 33%, LONG: 45%
+Market Return : 41.02%   |   Portfolio Return : 126.82%   |   
+
+--- Action Distribution at step 70000 ---
+SHORT: 30%, HOLD: 45%, LONG: 25%
+
+--- Training Stats at step 70000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 92.10%   |   
+
+--- Action Distribution at step 75000 ---
+SHORT: 32%, HOLD: 37%, LONG: 31%
+Market Return : 41.02%   |   Portfolio Return : 176.85%   |   
+
+--- Action Distribution at step 80000 ---
+SHORT: 33%, HOLD: 35%, LONG: 32%
+
+--- Training Stats at step 80000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 186.62%   |   
+
+--- Action Distribution at step 85000 ---
+SHORT: 40%, HOLD: 29%, LONG: 31%
+Market Return : 41.02%   |   Portfolio Return : 101.57%   |   
+
+--- Action Distribution at step 90000 ---
+SHORT: 42%, HOLD: 28%, LONG: 30%
+
+--- Training Stats at step 90000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 94.17%   |   
+
+--- Action Distribution at step 95000 ---
+SHORT: 34%, HOLD: 33%, LONG: 33%
+Market Return : 41.02%   |   Portfolio Return : 249.81%   |   
+
+--- Action Distribution at step 100000 ---
+SHORT: 37%, HOLD: 24%, LONG: 39%
+
+--- Training Stats at step 100000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 29.41%   |   
+[VAL] step=100,000 sharpe: 3.8199
+  ↳ New best model saved to best_fold1.zip
+Market Return : 41.02%   |   Portfolio Return : 223.13%   |   
+
+--- Action Distribution at step 105000 ---
+SHORT: 28%, HOLD: 31%, LONG: 41%
+Market Return : 41.02%   |   Portfolio Return : 106.49%   |   
+
+--- Action Distribution at step 110000 ---
+SHORT: 29%, HOLD: 31%, LONG: 40%
+
+--- Training Stats at step 110000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 149.06%   |   
+
+--- Action Distribution at step 115000 ---
+SHORT: 29%, HOLD: 31%, LONG: 40%
+Market Return : 41.02%   |   Portfolio Return : 136.81%   |   
+
+--- Action Distribution at step 120000 ---
+SHORT: 33%, HOLD: 21%, LONG: 46%
+
+--- Training Stats at step 120000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 239.90%   |   
+
+--- Action Distribution at step 125000 ---
+SHORT: 30%, HOLD: 34%, LONG: 36%
+Market Return : 41.02%   |   Portfolio Return : 268.72%   |   
+
+--- Action Distribution at step 130000 ---
+SHORT: 40%, HOLD: 28%, LONG: 32%
+
+--- Training Stats at step 130000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 246.28%   |   
+
+--- Action Distribution at step 135000 ---
+SHORT: 26%, HOLD: 37%, LONG: 37%
+Market Return : 41.02%   |   Portfolio Return : 307.51%   |   
+
+--- Action Distribution at step 140000 ---
+SHORT: 33%, HOLD: 35%, LONG: 32%
+
+--- Training Stats at step 140000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 259.56%   |   
+
+--- Action Distribution at step 145000 ---
+SHORT: 24%, HOLD: 43%, LONG: 33%
+Market Return : 41.02%   |   Portfolio Return : 325.50%   |   
+
+--- Action Distribution at step 150000 ---
+SHORT: 28%, HOLD: 33%, LONG: 39%
+
+--- Training Stats at step 150000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 71.57%   |   
+[VAL] step=150,000 sharpe: 8.8807
+  ↳ New best model saved to best_fold1.zip
+Market Return : 41.02%   |   Portfolio Return : 268.14%   |   
+
+--- Action Distribution at step 155000 ---
+SHORT: 28%, HOLD: 40%, LONG: 32%
+Market Return : 41.02%   |   Portfolio Return : 262.47%   |   
+
+--- Action Distribution at step 160000 ---
+SHORT: 31%, HOLD: 40%, LONG: 29%
+
+--- Training Stats at step 160000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 296.36%   |   
+
+--- Action Distribution at step 165000 ---
+SHORT: 35%, HOLD: 26%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 262.08%   |   
+
+--- Action Distribution at step 170000 ---
+SHORT: 32%, HOLD: 31%, LONG: 37%
+
+--- Training Stats at step 170000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 229.44%   |   
+
+--- Action Distribution at step 175000 ---
+SHORT: 30%, HOLD: 31%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 254.97%   |   
+
+--- Action Distribution at step 180000 ---
+SHORT: 37%, HOLD: 29%, LONG: 34%
+
+--- Training Stats at step 180000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 209.22%   |   
+
+--- Action Distribution at step 185000 ---
+SHORT: 26%, HOLD: 36%, LONG: 38%
+Market Return : 41.02%   |   Portfolio Return : 205.41%   |   
+
+--- Action Distribution at step 190000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+
+--- Training Stats at step 190000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 145.12%   |   
+
+--- Action Distribution at step 195000 ---
+SHORT: 27%, HOLD: 44%, LONG: 29%
+Market Return : 41.02%   |   Portfolio Return : 180.66%   |   
+
+--- Action Distribution at step 200000 ---
+SHORT: 32%, HOLD: 36%, LONG: 32%
+
+--- Training Stats at step 200000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 28.65%   |   
+[VAL] step=200,000 sharpe: 4.5091
+Market Return : 41.02%   |   Portfolio Return : 146.61%   |   
+
+--- Action Distribution at step 205000 ---
+SHORT: 30%, HOLD: 35%, LONG: 35%
+Market Return : 41.02%   |   Portfolio Return : 192.74%   |   
+
+--- Action Distribution at step 210000 ---
+SHORT: 25%, HOLD: 44%, LONG: 31%
+
+--- Training Stats at step 210000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 249.82%   |   
+
+--- Action Distribution at step 215000 ---
+SHORT: 25%, HOLD: 42%, LONG: 33%
+Market Return : 41.02%   |   Portfolio Return : 288.99%   |   
+
+--- Action Distribution at step 220000 ---
+SHORT: 22%, HOLD: 44%, LONG: 34%
+
+--- Training Stats at step 220000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 350.93%   |   
+
+--- Action Distribution at step 225000 ---
+SHORT: 21%, HOLD: 54%, LONG: 25%
+Market Return : 41.02%   |   Portfolio Return : 240.58%   |   
+
+--- Action Distribution at step 230000 ---
+SHORT: 19%, HOLD: 51%, LONG: 30%
+
+--- Training Stats at step 230000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 194.86%   |   
+
+--- Action Distribution at step 235000 ---
+SHORT: 18%, HOLD: 45%, LONG: 37%
+Market Return : 41.02%   |   Portfolio Return : 283.85%   |   
+
+--- Action Distribution at step 240000 ---
+SHORT: 12%, HOLD: 52%, LONG: 36%
+
+--- Training Stats at step 240000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 185.78%   |   
+
+--- Action Distribution at step 245000 ---
+SHORT: 14%, HOLD: 49%, LONG: 37%
+Market Return : 41.02%   |   Portfolio Return : 232.71%   |   
+
+--- Action Distribution at step 250000 ---
+SHORT: 22%, HOLD: 43%, LONG: 35%
+
+--- Training Stats at step 250000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 25.45%   |   
+[VAL] step=250,000 sharpe: 3.6914
+Market Return : 41.02%   |   Portfolio Return : 252.95%   |   
+
+--- Action Distribution at step 255000 ---
+SHORT: 13%, HOLD: 48%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 173.93%   |   
+
+--- Action Distribution at step 260000 ---
+SHORT: 13%, HOLD: 51%, LONG: 36%
+
+--- Training Stats at step 260000 ---
+Recent reward mean: -0.0079, std: 0.0447
+Action distribution: [97  1  2]
+Value estimate mean: 0.3560, std: 2.0258
+Market Return : 41.02%   |   Portfolio Return : 287.63%   |   
+
+--- Action Distribution at step 265000 ---
+SHORT: 11%, HOLD: 52%, LONG: 37%
+Market Return : 41.02%   |   Portfolio Return : 212.29%   |   
+
+--- Action Distribution at step 270000 ---
+SHORT: 24%, HOLD: 39%, LONG: 37%
+
+--- Training Stats at step 270000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 328.45%   |   
+
+--- Action Distribution at step 275000 ---
+SHORT: 22%, HOLD: 38%, LONG: 40%
+Market Return : 41.02%   |   Portfolio Return : 314.72%   |   
+
+--- Action Distribution at step 280000 ---
+SHORT: 31%, HOLD: 31%, LONG: 38%
+
+--- Training Stats at step 280000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 385.25%   |   
+
+--- Action Distribution at step 285000 ---
+SHORT: 19%, HOLD: 39%, LONG: 42%
+Market Return : 41.02%   |   Portfolio Return : 393.75%   |   
+
+--- Action Distribution at step 290000 ---
+SHORT: 22%, HOLD: 36%, LONG: 42%
+
+--- Training Stats at step 290000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 420.20%   |   
+
+--- Action Distribution at step 295000 ---
+SHORT: 22%, HOLD: 45%, LONG: 33%
+Market Return : 41.02%   |   Portfolio Return : 416.46%   |   
+
+--- Action Distribution at step 300000 ---
+SHORT: 26%, HOLD: 39%, LONG: 35%
+
+--- Training Stats at step 300000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 49.96%   |   
+[VAL] step=300,000 sharpe: 5.8630
+Market Return : 41.02%   |   Portfolio Return : 293.38%   |   
+
+--- Action Distribution at step 305000 ---
+SHORT: 32%, HOLD: 29%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 468.83%   |   
+
+--- Action Distribution at step 310000 ---
+SHORT: 27%, HOLD: 39%, LONG: 34%
+
+--- Training Stats at step 310000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 381.41%   |   
+
+--- Action Distribution at step 315000 ---
+SHORT: 30%, HOLD: 31%, LONG: 39%
+Market Return : 41.02%   |   Portfolio Return : 414.19%   |   
+
+--- Action Distribution at step 320000 ---
+SHORT: 30%, HOLD: 36%, LONG: 34%
+
+--- Training Stats at step 320000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 470.00%   |   
+
+--- Action Distribution at step 325000 ---
+SHORT: 21%, HOLD: 35%, LONG: 44%
+Market Return : 41.02%   |   Portfolio Return : 487.70%   |   
+
+--- Action Distribution at step 330000 ---
+SHORT: 23%, HOLD: 37%, LONG: 40%
+
+--- Training Stats at step 330000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 361.51%   |   
+
+--- Action Distribution at step 335000 ---
+SHORT: 24%, HOLD: 38%, LONG: 38%
+Market Return : 41.02%   |   Portfolio Return : 467.20%   |   
+
+--- Action Distribution at step 340000 ---
+SHORT: 30%, HOLD: 34%, LONG: 36%
+
+--- Training Stats at step 340000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 628.90%   |   
+
+--- Action Distribution at step 345000 ---
+SHORT: 15%, HOLD: 39%, LONG: 46%
+Market Return : 41.02%   |   Portfolio Return : 581.06%   |   
+
+--- Action Distribution at step 350000 ---
+SHORT: 20%, HOLD: 41%, LONG: 39%
+
+--- Training Stats at step 350000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 55.25%   |   
+[VAL] step=350,000 sharpe: 7.2844
+Market Return : 41.02%   |   Portfolio Return : 525.38%   |   
+
+--- Action Distribution at step 355000 ---
+SHORT: 19%, HOLD: 45%, LONG: 36%
+Market Return : 41.02%   |   Portfolio Return : 507.97%   |   
+
+--- Action Distribution at step 360000 ---
+SHORT: 20%, HOLD: 42%, LONG: 38%
+
+--- Training Stats at step 360000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 574.94%   |   
+
+--- Action Distribution at step 365000 ---
+SHORT: 24%, HOLD: 44%, LONG: 32%
+Market Return : 41.02%   |   Portfolio Return : 552.78%   |   
+
+--- Action Distribution at step 370000 ---
+SHORT: 20%, HOLD: 49%, LONG: 31%
+
+--- Training Stats at step 370000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 478.00%   |   
+
+--- Action Distribution at step 375000 ---
+SHORT: 25%, HOLD: 46%, LONG: 29%
+Market Return : 41.02%   |   Portfolio Return : 619.37%   |   
+
+--- Action Distribution at step 380000 ---
+SHORT: 26%, HOLD: 49%, LONG: 25%
+
+--- Training Stats at step 380000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 302.49%   |   
+
+--- Action Distribution at step 385000 ---
+SHORT: 29%, HOLD: 44%, LONG: 27%
+Market Return : 41.02%   |   Portfolio Return : 517.33%   |   
+
+--- Action Distribution at step 390000 ---
+SHORT: 29%, HOLD: 42%, LONG: 29%
+
+--- Training Stats at step 390000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 463.01%   |   
+
+--- Action Distribution at step 395000 ---
+SHORT: 26%, HOLD: 46%, LONG: 28%
+Market Return : 41.02%   |   Portfolio Return : 462.52%   |   
+
+--- Action Distribution at step 400000 ---
+SHORT: 33%, HOLD: 47%, LONG: 20%
+
+--- Training Stats at step 400000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 29.55%   |   
+[VAL] step=400,000 sharpe: 4.2118
+Market Return : 41.02%   |   Portfolio Return : 396.64%   |   
+
+--- Action Distribution at step 405000 ---
+SHORT: 29%, HOLD: 45%, LONG: 26%
+Market Return : 41.02%   |   Portfolio Return : 578.73%   |   
+
+--- Action Distribution at step 410000 ---
+SHORT: 27%, HOLD: 45%, LONG: 28%
+
+--- Training Stats at step 410000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 561.63%   |   
+
+--- Action Distribution at step 415000 ---
+SHORT: 21%, HOLD: 52%, LONG: 27%
+Market Return : 41.02%   |   Portfolio Return : 458.80%   |   
+
+--- Action Distribution at step 420000 ---
+SHORT: 31%, HOLD: 42%, LONG: 27%
+
+--- Training Stats at step 420000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 594.11%   |   
+
+--- Action Distribution at step 425000 ---
+SHORT: 33%, HOLD: 46%, LONG: 21%
+Market Return : 41.02%   |   Portfolio Return : 411.13%   |   
+
+--- Action Distribution at step 430000 ---
+SHORT: 26%, HOLD: 55%, LONG: 19%
+
+--- Training Stats at step 430000 ---
+Recent reward mean: 0.0168, std: 0.0382
+Action distribution: [88  7  5]
+Value estimate mean: 3.2207, std: 6.6661
+Market Return : 41.02%   |   Portfolio Return : 525.95%   |   
+
+--- Action Distribution at step 435000 ---
+SHORT: 26%, HOLD: 56%, LONG: 18%
+Market Return : 41.02%   |   Portfolio Return : 379.61%   |   
+
+--- Action Distribution at step 440000 ---
+SHORT: 28%, HOLD: 48%, LONG: 24%
+
+--- Training Stats at step 440000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 510.05%   |   
+
+--- Action Distribution at step 445000 ---
+SHORT: 28%, HOLD: 48%, LONG: 24%
+Market Return : 41.02%   |   Portfolio Return : 583.41%   |   
+
+--- Action Distribution at step 450000 ---
+SHORT: 32%, HOLD: 42%, LONG: 26%
+
+--- Training Stats at step 450000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 28.57%   |   
+[VAL] step=450,000 sharpe: 5.5666
+Market Return : 41.02%   |   Portfolio Return : 511.80%   |   
+
+--- Action Distribution at step 455000 ---
+SHORT: 37%, HOLD: 36%, LONG: 27%
+Market Return : 41.02%   |   Portfolio Return : 457.75%   |   
+
+--- Action Distribution at step 460000 ---
+SHORT: 33%, HOLD: 47%, LONG: 20%
+
+--- Training Stats at step 460000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 569.76%   |   
+
+--- Action Distribution at step 465000 ---
+SHORT: 28%, HOLD: 42%, LONG: 30%
+Market Return : 41.02%   |   Portfolio Return : 501.17%   |   
+
+--- Action Distribution at step 470000 ---
+SHORT: 22%, HOLD: 49%, LONG: 29%
+
+--- Training Stats at step 470000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 480.47%   |   
+
+--- Action Distribution at step 475000 ---
+SHORT: 29%, HOLD: 57%, LONG: 14%
+Market Return : 41.02%   |   Portfolio Return : 460.73%   |   
+
+--- Action Distribution at step 480000 ---
+SHORT: 23%, HOLD: 53%, LONG: 24%
+
+--- Training Stats at step 480000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 557.62%   |   
+
+--- Action Distribution at step 485000 ---
+SHORT: 24%, HOLD: 57%, LONG: 19%
+Market Return : 41.02%   |   Portfolio Return : 401.95%   |   
+
+--- Action Distribution at step 490000 ---
+SHORT: 20%, HOLD: 60%, LONG: 20%
+
+--- Training Stats at step 490000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 508.61%   |   
+
+--- Action Distribution at step 495000 ---
+SHORT: 25%, HOLD: 58%, LONG: 17%
+Market Return : 41.02%   |   Portfolio Return : 524.72%   |   
+
+--- Action Distribution at step 500000 ---
+SHORT: 23%, HOLD: 60%, LONG: 17%
+
+--- Training Stats at step 500000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 61.36%   |   
+[VAL] step=500,000 sharpe: 9.1670
+  ↳ New best model saved to best_fold1.zip
+Market Return : 41.02%   |   Portfolio Return : 341.91%   |   
+
+--- Action Distribution at step 505000 ---
+SHORT: 24%, HOLD: 57%, LONG: 19%
+Market Return : 41.02%   |   Portfolio Return : 462.94%   |   
+
+--- Action Distribution at step 510000 ---
+SHORT: 24%, HOLD: 54%, LONG: 22%
+
+--- Training Stats at step 510000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 563.91%   |   
+
+--- Action Distribution at step 515000 ---
+SHORT: 27%, HOLD: 51%, LONG: 22%
+Market Return : 41.02%   |   Portfolio Return : 674.27%   |   
+
+--- Action Distribution at step 520000 ---
+SHORT: 24%, HOLD: 48%, LONG: 28%
+
+--- Training Stats at step 520000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 600.05%   |   
+
+--- Action Distribution at step 525000 ---
+SHORT: 28%, HOLD: 43%, LONG: 29%
+Market Return : 41.02%   |   Portfolio Return : 549.19%   |   
+
+--- Action Distribution at step 530000 ---
+SHORT: 23%, HOLD: 48%, LONG: 29%
+
+--- Training Stats at step 530000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 644.46%   |   
+
+--- Action Distribution at step 535000 ---
+SHORT: 21%, HOLD: 51%, LONG: 28%
+Market Return : 41.02%   |   Portfolio Return : 615.18%   |   
+
+--- Action Distribution at step 540000 ---
+SHORT: 19%, HOLD: 53%, LONG: 28%
+
+--- Training Stats at step 540000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 654.96%   |   
+
+--- Action Distribution at step 545000 ---
+SHORT: 17%, HOLD: 48%, LONG: 35%
+Market Return : 41.02%   |   Portfolio Return : 745.18%   |   
+
+--- Action Distribution at step 550000 ---
+SHORT: 26%, HOLD: 47%, LONG: 27%
+
+--- Training Stats at step 550000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -7.89%   |   Portfolio Return : 88.74%   |   
+[VAL] step=550,000 sharpe: 10.1545
+  ↳ New best model saved to best_fold1.zip
+Market Return : 41.02%   |   Portfolio Return : 568.45%   |   
+
+--- Action Distribution at step 555000 ---
+SHORT: 24%, HOLD: 44%, LONG: 32%
+Market Return : 41.02%   |   Portfolio Return : 756.85%   |   
+
+--- Action Distribution at step 560000 ---
+SHORT: 30%, HOLD: 39%, LONG: 31%
+
+--- Training Stats at step 560000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 625.84%   |   
+
+--- Action Distribution at step 565000 ---
+SHORT: 25%, HOLD: 45%, LONG: 30%
+Market Return : 41.02%   |   Portfolio Return : 715.62%   |   
+
+--- Action Distribution at step 570000 ---
+SHORT: 32%, HOLD: 38%, LONG: 30%
+
+--- Training Stats at step 570000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 836.95%   |   
+
+--- Action Distribution at step 575000 ---
+SHORT: 32%, HOLD: 34%, LONG: 34%
+Market Return : 41.02%   |   Portfolio Return : 749.83%   |   
+
+--- Action Distribution at step 580000 ---
+SHORT: 24%, HOLD: 36%, LONG: 40%
+
+--- Training Stats at step 580000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 805.53%   |   
+
+--- Action Distribution at step 585000 ---
+SHORT: 28%, HOLD: 43%, LONG: 29%
+Market Return : 41.02%   |   Portfolio Return : 740.33%   |   
+
+--- Action Distribution at step 590000 ---
+SHORT: 22%, HOLD: 41%, LONG: 37%
+
+--- Training Stats at step 590000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 41.02%   |   Portfolio Return : 693.06%   |   
+
+--- Action Distribution at step 595000 ---
+SHORT: 28%, HOLD: 30%, LONG: 42%
+Market Return : 41.02%   |   Portfolio Return : 957.55%   |   
+
+--- Action Distribution at step 600000 ---
+SHORT: 25%, HOLD: 31%, LONG: 44%
+
+--- Training Stats at step 600000 ---
+Recent reward mean: 0.0891, std: 0.1215
+Action distribution: [77 15  8]
+Value estimate mean: 7.2666, std: 9.9104
+Market Return : -7.89%   |   Portfolio Return : 110.09%   |   
+[VAL] step=600,000 sharpe: 10.8423
+  ↳ New best model saved to best_fold1.zip
+[KL‑CB] ema_kl=3.69e-02  (1/10)
+Market Return : 41.02%   |   Portfolio Return : 646.16%   |   
+[KL‑CB] ema_kl=3.76e-02  (2/10)
+[KL‑CB] ema_kl=3.70e-02  (3/10)
+
+--- Action Distribution at step 605000 ---
+SHORT: 31%, HOLD: 27%, LONG: 42%
+[KL‑CB] ema_kl=3.66e-02  (4/10)
+Market Return : 41.02%   |   Portfolio Return : 670.03%   |   
+[KL‑CB] ema_kl=3.64e-02  (5/10)
+
+--- Action Distribution at step 610000 ---
+SHORT: 30%, HOLD: 28%, LONG: 42%
+
+--- Training Stats at step 610000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+[KL‑CB] ema_kl=3.55e-02  (6/10)
+Market Return : 41.02%   |   Portfolio Return : 941.23%   |   
+[KL‑CB] ema_kl=3.53e-02  (7/10)
+[KL‑CB] ema_kl=3.52e-02  (8/10)
+
+--- Action Distribution at step 615000 ---
+SHORT: 32%, HOLD: 33%, LONG: 35%
+[KL‑CB] ema_kl=3.48e-02  (9/10)
+Market Return : 41.02%   |   Portfolio Return : 818.22%   |   
+[KL‑CB] ema_kl=3.48e-02  (10/10)
+🟥 Early-stop por KL: sin cambios significativos 10 rollouts seguidos.
+Fold 1 | sharpe: 13.63
+Fold 1 | win-rate: 39.24%
+Fold 1 | profit_factor: 1.88
+Fold 1 | max_DD_dur.: 146 pasos
+Fold 1 | bull perf.: 0.00%
+Fold 1 | bear perf.: 77.96%
+Market Return : -7.89%   |   Portfolio Return : 76.51%   |   
+FOLD 1 extra metrics: {'annualized_sharpe': 0.0, 'win_rate': 0.0, 'profit_factor': 0.0, 'max_dd_duration': 0, 'regime_performance': {'bull': 0.0, 'bear': 0.0}}
+
+============= FOLD 2 =============
+Feature importance analysis:
+
+Top 15 most important features:
+  at_resistance_feature: 0.1405
+  at_support_feature: 0.1035
+  daily_rsi_feature: 0.0631
+  fng_feature: 0.0360
+  ret_1h_feature: 0.0304
+  ret_24h_feature: 0.0279
+  volatility_20_feature: 0.0261
+  vol_regime_36h_feature: 0.0253
+  vol_regime_72h_feature: 0.0246
+  sell_vol_z_feature: 0.0238
+  vol_imbalance_feature: 0.0218
+  atr_feature: 0.0208
+  sell_cost_z_feature: 0.0196
+  stoch_k_feature: 0.0178
+  vol_regime_12h_feature: 0.0161
+
+Bottom 15 least important features:
+  amount_z_feature: 0.0107
+  volume_z_feature: 0.0107
+  kst_ksts_9_feature: 0.0093
+  dollar_delta_feature: 0.0091
+  volume_regime_feature: 0.0069
+  buy_cost_z_feature: 0.0065
+  composite_regime_feature: 0.0047
+  mfi_feature: 0.0043
+  ppo_ppoh_12_26_9_feature: 0.0040
+  market_regime_feature: 0.0036
+  buy_vol_z_feature: 0.0025
+  trend_strength_feature: 0.0011
+  adx_feature: 0.0011
+  cci_feature: 0.0006
+  momentum_regime_feature: 0.0001
+
+Keeping 25/38 features with correlation > 0.01
+ Drop features: ['volatility_20_feature', 'ret_1h_feature']
+<function get_schedule_fn.<locals>.<lambda> at 0x7b72aea08540> None 0.5 0.03 <function ent_schedule at 0x7b730daf9120>
+
+--- Action Distribution at step 5000 ---
+SHORT: 29%, HOLD: 40%, LONG: 31%
+Market Return : 74.55%   |   Portfolio Return : -8.69%   |   
+
+--- Action Distribution at step 10000 ---
+SHORT: 39%, HOLD: 36%, LONG: 25%
+
+--- Training Stats at step 10000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return :  8.41%   |   
+
+--- Action Distribution at step 15000 ---
+SHORT: 52%, HOLD: 22%, LONG: 26%
+Market Return : 74.55%   |   Portfolio Return : 28.09%   |   
+
+--- Action Distribution at step 20000 ---
+SHORT: 40%, HOLD: 35%, LONG: 25%
+
+--- Training Stats at step 20000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 132.63%   |   
+
+--- Action Distribution at step 25000 ---
+SHORT: 36%, HOLD: 30%, LONG: 34%
+Market Return : 74.55%   |   Portfolio Return : 53.62%   |   
+
+--- Action Distribution at step 30000 ---
+SHORT: 37%, HOLD: 28%, LONG: 35%
+
+--- Training Stats at step 30000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 150.47%   |   
+
+--- Action Distribution at step 35000 ---
+SHORT: 42%, HOLD: 22%, LONG: 36%
+Market Return : 74.55%   |   Portfolio Return : 135.36%   |   
+
+--- Action Distribution at step 40000 ---
+SHORT: 46%, HOLD: 23%, LONG: 31%
+
+--- Training Stats at step 40000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 134.43%   |   
+
+--- Action Distribution at step 45000 ---
+SHORT: 33%, HOLD: 26%, LONG: 41%
+Market Return : 74.55%   |   Portfolio Return : 200.43%   |   
+
+--- Action Distribution at step 50000 ---
+SHORT: 33%, HOLD: 32%, LONG: 35%
+
+--- Training Stats at step 50000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 10.81%   |   
+[VAL] step=50,000 sharpe: 1.7354
+  ↳ New best model saved to best_fold2.zip
+Market Return : 74.55%   |   Portfolio Return : 91.00%   |   
+
+--- Action Distribution at step 55000 ---
+SHORT: 25%, HOLD: 32%, LONG: 43%
+Market Return : 74.55%   |   Portfolio Return : 187.17%   |   
+
+--- Action Distribution at step 60000 ---
+SHORT: 34%, HOLD: 24%, LONG: 42%
+
+--- Training Stats at step 60000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 238.29%   |   
+
+--- Action Distribution at step 65000 ---
+SHORT: 33%, HOLD: 30%, LONG: 37%
+Market Return : 74.55%   |   Portfolio Return : 347.85%   |   
+
+--- Action Distribution at step 70000 ---
+SHORT: 41%, HOLD: 39%, LONG: 20%
+
+--- Training Stats at step 70000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 178.66%   |   
+
+--- Action Distribution at step 75000 ---
+SHORT: 35%, HOLD: 33%, LONG: 32%
+Market Return : 74.55%   |   Portfolio Return : 191.39%   |   
+
+--- Action Distribution at step 80000 ---
+SHORT: 36%, HOLD: 25%, LONG: 39%
+
+--- Training Stats at step 80000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 174.28%   |   
+
+--- Action Distribution at step 85000 ---
+SHORT: 27%, HOLD: 29%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 167.01%   |   
+
+--- Action Distribution at step 90000 ---
+SHORT: 30%, HOLD: 28%, LONG: 42%
+
+--- Training Stats at step 90000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 168.59%   |   
+
+--- Action Distribution at step 95000 ---
+SHORT: 30%, HOLD: 28%, LONG: 42%
+Market Return : 74.55%   |   Portfolio Return : 250.67%   |   
+
+--- Action Distribution at step 100000 ---
+SHORT: 23%, HOLD: 37%, LONG: 40%
+
+--- Training Stats at step 100000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 13.09%   |   
+[VAL] step=100,000 sharpe: 2.1898
+  ↳ New best model saved to best_fold2.zip
+Market Return : 74.55%   |   Portfolio Return : 205.55%   |   
+
+--- Action Distribution at step 105000 ---
+SHORT: 27%, HOLD: 19%, LONG: 54%
+Market Return : 74.55%   |   Portfolio Return : 179.58%   |   
+
+--- Action Distribution at step 110000 ---
+SHORT: 40%, HOLD: 17%, LONG: 43%
+
+--- Training Stats at step 110000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 160.48%   |   
+
+--- Action Distribution at step 115000 ---
+SHORT: 28%, HOLD: 25%, LONG: 47%
+Market Return : 74.55%   |   Portfolio Return : 256.31%   |   
+
+--- Action Distribution at step 120000 ---
+SHORT: 31%, HOLD: 24%, LONG: 45%
+
+--- Training Stats at step 120000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 202.05%   |   
+
+--- Action Distribution at step 125000 ---
+SHORT: 34%, HOLD: 18%, LONG: 48%
+Market Return : 74.55%   |   Portfolio Return : 153.42%   |   
+
+--- Action Distribution at step 130000 ---
+SHORT: 28%, HOLD: 12%, LONG: 60%
+
+--- Training Stats at step 130000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 170.75%   |   
+
+--- Action Distribution at step 135000 ---
+SHORT: 26%, HOLD: 24%, LONG: 50%
+Market Return : 74.55%   |   Portfolio Return : 144.17%   |   
+
+--- Action Distribution at step 140000 ---
+SHORT: 38%, HOLD: 19%, LONG: 43%
+
+--- Training Stats at step 140000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 142.95%   |   
+
+--- Action Distribution at step 145000 ---
+SHORT: 34%, HOLD: 19%, LONG: 47%
+Market Return : 74.55%   |   Portfolio Return : 146.51%   |   
+
+--- Action Distribution at step 150000 ---
+SHORT: 27%, HOLD: 23%, LONG: 50%
+
+--- Training Stats at step 150000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return :  6.39%   |   
+[VAL] step=150,000 sharpe: 1.0510
+Market Return : 74.55%   |   Portfolio Return : 218.41%   |   
+
+--- Action Distribution at step 155000 ---
+SHORT: 43%, HOLD: 19%, LONG: 38%
+Market Return : 74.55%   |   Portfolio Return : 218.91%   |   
+
+--- Action Distribution at step 160000 ---
+SHORT: 36%, HOLD: 20%, LONG: 44%
+
+--- Training Stats at step 160000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 179.54%   |   
+
+--- Action Distribution at step 165000 ---
+SHORT: 40%, HOLD: 14%, LONG: 46%
+Market Return : 74.55%   |   Portfolio Return : 310.46%   |   
+
+--- Action Distribution at step 170000 ---
+SHORT: 37%, HOLD: 20%, LONG: 43%
+
+--- Training Stats at step 170000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 189.54%   |   
+
+--- Action Distribution at step 175000 ---
+SHORT: 48%, HOLD: 14%, LONG: 38%
+Market Return : 74.55%   |   Portfolio Return : 252.01%   |   
+
+--- Action Distribution at step 180000 ---
+SHORT: 44%, HOLD: 18%, LONG: 38%
+
+--- Training Stats at step 180000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 165.78%   |   
+
+--- Action Distribution at step 185000 ---
+SHORT: 39%, HOLD: 27%, LONG: 34%
+Market Return : 74.55%   |   Portfolio Return : 231.91%   |   
+
+--- Action Distribution at step 190000 ---
+SHORT: 45%, HOLD: 14%, LONG: 41%
+
+--- Training Stats at step 190000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 252.59%   |   
+
+--- Action Distribution at step 195000 ---
+SHORT: 42%, HOLD: 16%, LONG: 42%
+Market Return : 74.55%   |   Portfolio Return : 241.63%   |   
+
+--- Action Distribution at step 200000 ---
+SHORT: 38%, HOLD: 24%, LONG: 38%
+
+--- Training Stats at step 200000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 37.04%   |   
+[VAL] step=200,000 sharpe: 5.2549
+  ↳ New best model saved to best_fold2.zip
+Market Return : 74.55%   |   Portfolio Return : 156.39%   |   
+
+--- Action Distribution at step 205000 ---
+SHORT: 47%, HOLD: 17%, LONG: 36%
+Market Return : 74.55%   |   Portfolio Return : 285.43%   |   
+
+--- Action Distribution at step 210000 ---
+SHORT: 46%, HOLD: 8%, LONG: 46%
+
+--- Training Stats at step 210000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 180.51%   |   
+
+--- Action Distribution at step 215000 ---
+SHORT: 47%, HOLD: 13%, LONG: 40%
+Market Return : 74.55%   |   Portfolio Return : 286.69%   |   
+
+--- Action Distribution at step 220000 ---
+SHORT: 41%, HOLD: 12%, LONG: 47%
+
+--- Training Stats at step 220000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 255.96%   |   
+
+--- Action Distribution at step 225000 ---
+SHORT: 40%, HOLD: 14%, LONG: 46%
+Market Return : 74.55%   |   Portfolio Return : 305.31%   |   
+
+--- Action Distribution at step 230000 ---
+SHORT: 43%, HOLD: 11%, LONG: 46%
+
+--- Training Stats at step 230000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 290.64%   |   
+
+--- Action Distribution at step 235000 ---
+SHORT: 39%, HOLD: 12%, LONG: 49%
+Market Return : 74.55%   |   Portfolio Return : 226.29%   |   
+
+--- Action Distribution at step 240000 ---
+SHORT: 37%, HOLD: 21%, LONG: 42%
+
+--- Training Stats at step 240000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 328.63%   |   
+
+--- Action Distribution at step 245000 ---
+SHORT: 39%, HOLD: 23%, LONG: 38%
+Market Return : 74.55%   |   Portfolio Return : 258.05%   |   
+
+--- Action Distribution at step 250000 ---
+SHORT: 51%, HOLD: 15%, LONG: 34%
+
+--- Training Stats at step 250000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : -11.15%   |   
+[VAL] step=250,000 sharpe: -2.2010
+Market Return : 74.55%   |   Portfolio Return : 161.58%   |   
+
+--- Action Distribution at step 255000 ---
+SHORT: 32%, HOLD: 28%, LONG: 40%
+Market Return : 74.55%   |   Portfolio Return : 320.18%   |   
+
+--- Action Distribution at step 260000 ---
+SHORT: 34%, HOLD: 23%, LONG: 43%
+
+--- Training Stats at step 260000 ---
+Recent reward mean: 0.0076, std: 0.0430
+Action distribution: [99  1]
+Value estimate mean: 0.3862, std: 2.1985
+Market Return : 74.55%   |   Portfolio Return : 310.65%   |   
+
+--- Action Distribution at step 265000 ---
+SHORT: 34%, HOLD: 25%, LONG: 41%
+Market Return : 74.55%   |   Portfolio Return : 256.30%   |   
+
+--- Action Distribution at step 270000 ---
+SHORT: 41%, HOLD: 17%, LONG: 42%
+
+--- Training Stats at step 270000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 248.97%   |   
+
+--- Action Distribution at step 275000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 323.41%   |   
+
+--- Action Distribution at step 280000 ---
+SHORT: 37%, HOLD: 19%, LONG: 44%
+
+--- Training Stats at step 280000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 227.73%   |   
+
+--- Action Distribution at step 285000 ---
+SHORT: 37%, HOLD: 15%, LONG: 48%
+Market Return : 74.55%   |   Portfolio Return : 257.34%   |   
+
+--- Action Distribution at step 290000 ---
+SHORT: 36%, HOLD: 22%, LONG: 42%
+
+--- Training Stats at step 290000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 259.90%   |   
+
+--- Action Distribution at step 295000 ---
+SHORT: 33%, HOLD: 22%, LONG: 45%
+Market Return : 74.55%   |   Portfolio Return : 293.97%   |   
+
+--- Action Distribution at step 300000 ---
+SHORT: 27%, HOLD: 31%, LONG: 42%
+
+--- Training Stats at step 300000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 31.61%   |   
+[VAL] step=300,000 sharpe: 4.6705
+Market Return : 74.55%   |   Portfolio Return : 269.32%   |   
+
+--- Action Distribution at step 305000 ---
+SHORT: 34%, HOLD: 20%, LONG: 46%
+Market Return : 74.55%   |   Portfolio Return : 353.65%   |   
+
+--- Action Distribution at step 310000 ---
+SHORT: 34%, HOLD: 10%, LONG: 56%
+
+--- Training Stats at step 310000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 223.85%   |   
+
+--- Action Distribution at step 315000 ---
+SHORT: 35%, HOLD: 13%, LONG: 52%
+Market Return : 74.55%   |   Portfolio Return : 420.32%   |   
+
+--- Action Distribution at step 320000 ---
+SHORT: 35%, HOLD: 10%, LONG: 55%
+
+--- Training Stats at step 320000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 361.34%   |   
+
+--- Action Distribution at step 325000 ---
+SHORT: 35%, HOLD: 15%, LONG: 50%
+Market Return : 74.55%   |   Portfolio Return : 333.65%   |   
+
+--- Action Distribution at step 330000 ---
+SHORT: 44%, HOLD: 7%, LONG: 49%
+
+--- Training Stats at step 330000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 294.80%   |   
+
+--- Action Distribution at step 335000 ---
+SHORT: 34%, HOLD: 11%, LONG: 55%
+Market Return : 74.55%   |   Portfolio Return : 256.01%   |   
+
+--- Action Distribution at step 340000 ---
+SHORT: 37%, HOLD: 14%, LONG: 49%
+
+--- Training Stats at step 340000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 268.37%   |   
+
+--- Action Distribution at step 345000 ---
+SHORT: 39%, HOLD: 13%, LONG: 48%
+Market Return : 74.55%   |   Portfolio Return : 224.79%   |   
+
+--- Action Distribution at step 350000 ---
+SHORT: 39%, HOLD: 10%, LONG: 51%
+
+--- Training Stats at step 350000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 42.45%   |   
+[VAL] step=350,000 sharpe: 6.0103
+  ↳ New best model saved to best_fold2.zip
+Market Return : 74.55%   |   Portfolio Return : 224.25%   |   
+
+--- Action Distribution at step 355000 ---
+SHORT: 37%, HOLD: 16%, LONG: 47%
+Market Return : 74.55%   |   Portfolio Return : 357.22%   |   
+
+--- Action Distribution at step 360000 ---
+SHORT: 47%, HOLD: 12%, LONG: 41%
+
+--- Training Stats at step 360000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 321.14%   |   
+
+--- Action Distribution at step 365000 ---
+SHORT: 39%, HOLD: 10%, LONG: 51%
+Market Return : 74.55%   |   Portfolio Return : 401.08%   |   
+
+--- Action Distribution at step 370000 ---
+SHORT: 36%, HOLD: 16%, LONG: 48%
+
+--- Training Stats at step 370000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 420.38%   |   
+
+--- Action Distribution at step 375000 ---
+SHORT: 39%, HOLD: 11%, LONG: 50%
+Market Return : 74.55%   |   Portfolio Return : 319.40%   |   
+
+--- Action Distribution at step 380000 ---
+SHORT: 28%, HOLD: 19%, LONG: 53%
+
+--- Training Stats at step 380000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 275.15%   |   
+
+--- Action Distribution at step 385000 ---
+SHORT: 27%, HOLD: 22%, LONG: 51%
+Market Return : 74.55%   |   Portfolio Return : 256.28%   |   
+
+--- Action Distribution at step 390000 ---
+SHORT: 31%, HOLD: 13%, LONG: 56%
+
+--- Training Stats at step 390000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 305.14%   |   
+
+--- Action Distribution at step 395000 ---
+SHORT: 31%, HOLD: 14%, LONG: 55%
+Market Return : 74.55%   |   Portfolio Return : 440.65%   |   
+
+--- Action Distribution at step 400000 ---
+SHORT: 32%, HOLD: 16%, LONG: 52%
+
+--- Training Stats at step 400000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : -5.86%   |   
+[VAL] step=400,000 sharpe: -0.9659
+Market Return : 74.55%   |   Portfolio Return : 349.39%   |   
+
+--- Action Distribution at step 405000 ---
+SHORT: 27%, HOLD: 13%, LONG: 60%
+Market Return : 74.55%   |   Portfolio Return : 321.26%   |   
+
+--- Action Distribution at step 410000 ---
+SHORT: 31%, HOLD: 21%, LONG: 48%
+
+--- Training Stats at step 410000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 251.36%   |   
+
+--- Action Distribution at step 415000 ---
+SHORT: 42%, HOLD: 19%, LONG: 39%
+Market Return : 74.55%   |   Portfolio Return : 257.22%   |   
+
+--- Action Distribution at step 420000 ---
+SHORT: 29%, HOLD: 20%, LONG: 51%
+
+--- Training Stats at step 420000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 225.28%   |   
+
+--- Action Distribution at step 425000 ---
+SHORT: 35%, HOLD: 19%, LONG: 46%
+Market Return : 74.55%   |   Portfolio Return : 396.58%   |   
+
+--- Action Distribution at step 430000 ---
+SHORT: 33%, HOLD: 14%, LONG: 53%
+
+--- Training Stats at step 430000 ---
+Recent reward mean: 0.0424, std: 0.0880
+Action distribution: [87  4  9]
+Value estimate mean: 3.0764, std: 6.3593
+Market Return : 74.55%   |   Portfolio Return : 315.71%   |   
+
+--- Action Distribution at step 435000 ---
+SHORT: 34%, HOLD: 22%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 264.14%   |   
+
+--- Action Distribution at step 440000 ---
+SHORT: 40%, HOLD: 17%, LONG: 43%
+
+--- Training Stats at step 440000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 369.01%   |   
+
+--- Action Distribution at step 445000 ---
+SHORT: 36%, HOLD: 19%, LONG: 45%
+Market Return : 74.55%   |   Portfolio Return : 247.59%   |   
+
+--- Action Distribution at step 450000 ---
+SHORT: 37%, HOLD: 21%, LONG: 42%
+
+--- Training Stats at step 450000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 17.40%   |   
+[VAL] step=450,000 sharpe: 3.0013
+Market Return : 74.55%   |   Portfolio Return : 373.04%   |   
+
+--- Action Distribution at step 455000 ---
+SHORT: 40%, HOLD: 16%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 297.43%   |   
+
+--- Action Distribution at step 460000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+
+--- Training Stats at step 460000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 347.09%   |   
+
+--- Action Distribution at step 465000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 487.96%   |   
+
+--- Action Distribution at step 470000 ---
+SHORT: 45%, HOLD: 18%, LONG: 37%
+
+--- Training Stats at step 470000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 525.94%   |   
+
+--- Action Distribution at step 475000 ---
+SHORT: 50%, HOLD: 18%, LONG: 32%
+Market Return : 74.55%   |   Portfolio Return : 370.93%   |   
+
+--- Action Distribution at step 480000 ---
+SHORT: 49%, HOLD: 13%, LONG: 38%
+
+--- Training Stats at step 480000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 386.23%   |   
+
+--- Action Distribution at step 485000 ---
+SHORT: 43%, HOLD: 24%, LONG: 33%
+Market Return : 74.55%   |   Portfolio Return : 508.88%   |   
+
+--- Action Distribution at step 490000 ---
+SHORT: 38%, HOLD: 29%, LONG: 33%
+
+--- Training Stats at step 490000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 365.86%   |   
+
+--- Action Distribution at step 495000 ---
+SHORT: 37%, HOLD: 25%, LONG: 38%
+Market Return : 74.55%   |   Portfolio Return : 334.75%   |   
+
+--- Action Distribution at step 500000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+
+--- Training Stats at step 500000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 13.68%   |   
+[VAL] step=500,000 sharpe: 2.6589
+Market Return : 74.55%   |   Portfolio Return : 407.46%   |   
+
+--- Action Distribution at step 505000 ---
+SHORT: 38%, HOLD: 18%, LONG: 44%
+Market Return : 74.55%   |   Portfolio Return : 369.07%   |   
+
+--- Action Distribution at step 510000 ---
+SHORT: 33%, HOLD: 20%, LONG: 47%
+
+--- Training Stats at step 510000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 393.11%   |   
+
+--- Action Distribution at step 515000 ---
+SHORT: 37%, HOLD: 15%, LONG: 48%
+Market Return : 74.55%   |   Portfolio Return : 450.12%   |   
+
+--- Action Distribution at step 520000 ---
+SHORT: 32%, HOLD: 22%, LONG: 46%
+
+--- Training Stats at step 520000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 308.51%   |   
+
+--- Action Distribution at step 525000 ---
+SHORT: 39%, HOLD: 14%, LONG: 47%
+Market Return : 74.55%   |   Portfolio Return : 336.46%   |   
+
+--- Action Distribution at step 530000 ---
+SHORT: 31%, HOLD: 16%, LONG: 53%
+
+--- Training Stats at step 530000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 380.28%   |   
+
+--- Action Distribution at step 535000 ---
+SHORT: 30%, HOLD: 17%, LONG: 53%
+Market Return : 74.55%   |   Portfolio Return : 339.30%   |   
+
+--- Action Distribution at step 540000 ---
+SHORT: 25%, HOLD: 24%, LONG: 51%
+
+--- Training Stats at step 540000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 350.96%   |   
+
+--- Action Distribution at step 545000 ---
+SHORT: 29%, HOLD: 22%, LONG: 49%
+Market Return : 74.55%   |   Portfolio Return : 368.35%   |   
+
+--- Action Distribution at step 550000 ---
+SHORT: 36%, HOLD: 19%, LONG: 45%
+
+--- Training Stats at step 550000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : -14.19%   |   Portfolio Return : 15.61%   |   
+[VAL] step=550,000 sharpe: 2.3663
+Market Return : 74.55%   |   Portfolio Return : 467.11%   |   
+
+--- Action Distribution at step 555000 ---
+SHORT: 37%, HOLD: 20%, LONG: 43%
+Market Return : 74.55%   |   Portfolio Return : 337.23%   |   
+
+--- Action Distribution at step 560000 ---
+SHORT: 36%, HOLD: 14%, LONG: 50%
+
+--- Training Stats at step 560000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 580.73%   |   
+
+--- Action Distribution at step 565000 ---
+SHORT: 36%, HOLD: 19%, LONG: 45%
+Market Return : 74.55%   |   Portfolio Return : 491.79%   |   
+
+--- Action Distribution at step 570000 ---
+SHORT: 32%, HOLD: 20%, LONG: 48%
+
+--- Training Stats at step 570000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 602.40%   |   
+
+--- Action Distribution at step 575000 ---
+SHORT: 37%, HOLD: 15%, LONG: 48%
+Market Return : 74.55%   |   Portfolio Return : 520.26%   |   
+
+--- Action Distribution at step 580000 ---
+SHORT: 38%, HOLD: 19%, LONG: 43%
+
+--- Training Stats at step 580000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 530.46%   |   
+
+--- Action Distribution at step 585000 ---
+SHORT: 41%, HOLD: 19%, LONG: 40%
+Market Return : 74.55%   |   Portfolio Return : 527.37%   |   
+
+--- Action Distribution at step 590000 ---
+SHORT: 42%, HOLD: 15%, LONG: 43%
+
+--- Training Stats at step 590000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 74.55%   |   Portfolio Return : 593.51%   |   
+
+--- Action Distribution at step 595000 ---
+SHORT: 42%, HOLD: 20%, LONG: 38%
+Market Return : 74.55%   |   Portfolio Return : 516.02%   |   
+
+--- Action Distribution at step 600000 ---
+SHORT: 41%, HOLD: 19%, LONG: 40%
+
+--- Training Stats at step 600000 ---
+Recent reward mean: 0.0916, std: 0.1253
+Action distribution: [73  5 22]
+Value estimate mean: 6.0136, std: 8.1985
+Market Return : -14.19%   |   Portfolio Return :  9.51%   |   
+[VAL] step=600,000 sharpe: 1.8377
+[KL‑CB] ema_kl=3.50e-02  (1/10)
+Market Return : 74.55%   |   Portfolio Return : 580.69%   |   
+[KL‑CB] ema_kl=3.32e-02  (2/10)
+[KL‑CB] ema_kl=3.32e-02  (3/10)
+
+--- Action Distribution at step 605000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+[KL‑CB] ema_kl=3.32e-02  (4/10)
+Market Return : 74.55%   |   Portfolio Return : 544.32%   |   
+[KL‑CB] ema_kl=3.32e-02  (5/10)
+
+--- Action Distribution at step 610000 ---
+SHORT: 38%, HOLD: 15%, LONG: 47%
+
+--- Training Stats at step 610000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+[KL‑CB] ema_kl=3.27e-02  (6/10)
+Market Return : 74.55%   |   Portfolio Return : 480.51%   |   
+[KL‑CB] ema_kl=3.30e-02  (7/10)
+[KL‑CB] ema_kl=3.42e-02  (8/10)
+
+--- Action Distribution at step 615000 ---
+SHORT: 38%, HOLD: 23%, LONG: 39%
+[KL‑CB] ema_kl=3.38e-02  (9/10)
+Market Return : 74.55%   |   Portfolio Return : 590.45%   |   
+[KL‑CB] ema_kl=3.51e-02  (10/10)
+🟥 Early-stop por KL: sin cambios significativos 10 rollouts seguidos.
+Fold 2 | sharpe: 11.51
+Fold 2 | win-rate: 41.86%
+Fold 2 | profit_factor: 1.64
+Fold 2 | max_DD_dur.: 177 pasos
+Fold 2 | bull perf.: 0.00%
+Fold 2 | bear perf.: 67.69%
+Market Return : -14.19%   |   Portfolio Return : 47.54%   |   
+FOLD 2 extra metrics: {'annualized_sharpe': 0.0, 'win_rate': 0.0, 'profit_factor': 0.0, 'max_dd_duration': 0, 'regime_performance': {'bull': 0.0, 'bear': 0.0}}
+
+============= FOLD 3 =============
+Feature importance analysis:
+
+Top 15 most important features:
+  at_resistance_feature: 0.1390
+  at_support_feature: 0.1150
+  daily_rsi_feature: 0.0654
+  fng_feature: 0.0387
+  vol_regime_72h_feature: 0.0360
+  ret_24h_feature: 0.0326
+  vol_regime_36h_feature: 0.0316
+  sell_vol_z_feature: 0.0259
+  vol_regime_12h_feature: 0.0242
+  volatility_20_feature: 0.0233
+  vwap_feature: 0.0225
+  ppo_ppos_12_26_9_feature: 0.0221
+  sell_cost_z_feature: 0.0217
+  kst_kst_10_15_20_30_10_10_10_15_feature: 0.0211
+  ret_1h_feature: 0.0206
+
+Bottom 15 least important features:
+  volume_z_feature: 0.0142
+  amount_z_feature: 0.0142
+  range_position_feature: 0.0137
+  volume_regime_feature: 0.0136
+  trend_strength_feature: 0.0103
+  adx_feature: 0.0103
+  dollar_delta_feature: 0.0103
+  momentum_regime_feature: 0.0086
+  ppo_ppoh_12_26_9_feature: 0.0083
+  market_regime_feature: 0.0083
+  mfi_feature: 0.0064
+  cci_feature: 0.0032
+  buy_cost_z_feature: 0.0024
+  composite_regime_feature: 0.0022
+  buy_vol_z_feature: 0.0017
+
+Keeping 30/38 features with correlation > 0.01
+ Drop features: ['volatility_20_feature', 'ret_1h_feature']
+<function get_schedule_fn.<locals>.<lambda> at 0x7b72aea09e40> None 0.5 0.03 <function ent_schedule at 0x7b730daf9120>
+
+--- Action Distribution at step 5000 ---
+SHORT: 37%, HOLD: 29%, LONG: 34%
+Market Return : 46.88%   |   Portfolio Return : -26.40%   |   
+
+--- Action Distribution at step 10000 ---
+SHORT: 36%, HOLD: 40%, LONG: 24%
+
+--- Training Stats at step 10000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : -18.38%   |   
+
+--- Action Distribution at step 15000 ---
+SHORT: 30%, HOLD: 46%, LONG: 24%
+Market Return : 46.88%   |   Portfolio Return : 19.71%   |   
+
+--- Action Distribution at step 20000 ---
+SHORT: 23%, HOLD: 42%, LONG: 35%
+
+--- Training Stats at step 20000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 33.24%   |   
+
+--- Action Distribution at step 25000 ---
+SHORT: 34%, HOLD: 25%, LONG: 41%
+Market Return : 46.88%   |   Portfolio Return : 65.48%   |   
+
+--- Action Distribution at step 30000 ---
+SHORT: 30%, HOLD: 28%, LONG: 42%
+
+--- Training Stats at step 30000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 105.84%   |   
+
+--- Action Distribution at step 35000 ---
+SHORT: 40%, HOLD: 22%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 68.92%   |   
+
+--- Action Distribution at step 40000 ---
+SHORT: 42%, HOLD: 24%, LONG: 34%
+
+--- Training Stats at step 40000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 84.78%   |   
+
+--- Action Distribution at step 45000 ---
+SHORT: 36%, HOLD: 26%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 131.77%   |   
+
+--- Action Distribution at step 50000 ---
+SHORT: 34%, HOLD: 33%, LONG: 33%
+
+--- Training Stats at step 50000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 25.19%   |   
+[VAL] step=50,000 sharpe: 5.9465
+  ↳ New best model saved to best_fold3.zip
+Market Return : 46.88%   |   Portfolio Return : 179.37%   |   
+
+--- Action Distribution at step 55000 ---
+SHORT: 35%, HOLD: 22%, LONG: 43%
+Market Return : 46.88%   |   Portfolio Return : 61.12%   |   
+
+--- Action Distribution at step 60000 ---
+SHORT: 36%, HOLD: 25%, LONG: 39%
+
+--- Training Stats at step 60000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 122.91%   |   
+
+--- Action Distribution at step 65000 ---
+SHORT: 32%, HOLD: 22%, LONG: 46%
+Market Return : 46.88%   |   Portfolio Return : 131.33%   |   
+
+--- Action Distribution at step 70000 ---
+SHORT: 25%, HOLD: 28%, LONG: 47%
+
+--- Training Stats at step 70000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 218.06%   |   
+
+--- Action Distribution at step 75000 ---
+SHORT: 38%, HOLD: 24%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 106.78%   |   
+
+--- Action Distribution at step 80000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+
+--- Training Stats at step 80000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 262.47%   |   
+
+--- Action Distribution at step 85000 ---
+SHORT: 40%, HOLD: 25%, LONG: 35%
+Market Return : 46.88%   |   Portfolio Return : 239.37%   |   
+
+--- Action Distribution at step 90000 ---
+SHORT: 45%, HOLD: 21%, LONG: 34%
+
+--- Training Stats at step 90000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 252.25%   |   
+
+--- Action Distribution at step 95000 ---
+SHORT: 31%, HOLD: 28%, LONG: 41%
+Market Return : 46.88%   |   Portfolio Return : 249.32%   |   
+
+--- Action Distribution at step 100000 ---
+SHORT: 38%, HOLD: 39%, LONG: 23%
+
+--- Training Stats at step 100000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 17.28%   |   
+[VAL] step=100,000 sharpe: 3.6776
+Market Return : 46.88%   |   Portfolio Return : 195.82%   |   
+
+--- Action Distribution at step 105000 ---
+SHORT: 41%, HOLD: 30%, LONG: 29%
+Market Return : 46.88%   |   Portfolio Return : 149.76%   |   
+
+--- Action Distribution at step 110000 ---
+SHORT: 40%, HOLD: 23%, LONG: 37%
+
+--- Training Stats at step 110000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 181.30%   |   
+
+--- Action Distribution at step 115000 ---
+SHORT: 29%, HOLD: 26%, LONG: 45%
+Market Return : 46.88%   |   Portfolio Return : 181.06%   |   
+
+--- Action Distribution at step 120000 ---
+SHORT: 38%, HOLD: 31%, LONG: 31%
+
+--- Training Stats at step 120000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 223.89%   |   
+
+--- Action Distribution at step 125000 ---
+SHORT: 29%, HOLD: 41%, LONG: 30%
+Market Return : 46.88%   |   Portfolio Return : 304.22%   |   
+
+--- Action Distribution at step 130000 ---
+SHORT: 30%, HOLD: 40%, LONG: 30%
+
+--- Training Stats at step 130000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 323.31%   |   
+
+--- Action Distribution at step 135000 ---
+SHORT: 20%, HOLD: 44%, LONG: 36%
+Market Return : 46.88%   |   Portfolio Return : 231.04%   |   
+
+--- Action Distribution at step 140000 ---
+SHORT: 22%, HOLD: 37%, LONG: 41%
+
+--- Training Stats at step 140000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 342.41%   |   
+
+--- Action Distribution at step 145000 ---
+SHORT: 16%, HOLD: 42%, LONG: 42%
+Market Return : 46.88%   |   Portfolio Return : 295.13%   |   
+
+--- Action Distribution at step 150000 ---
+SHORT: 23%, HOLD: 37%, LONG: 40%
+
+--- Training Stats at step 150000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 16.93%   |   
+[VAL] step=150,000 sharpe: 3.6467
+Market Return : 46.88%   |   Portfolio Return : 354.87%   |   
+
+--- Action Distribution at step 155000 ---
+SHORT: 22%, HOLD: 31%, LONG: 47%
+Market Return : 46.88%   |   Portfolio Return : 225.09%   |   
+
+--- Action Distribution at step 160000 ---
+SHORT: 14%, HOLD: 47%, LONG: 39%
+
+--- Training Stats at step 160000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 203.29%   |   
+
+--- Action Distribution at step 165000 ---
+SHORT: 15%, HOLD: 46%, LONG: 39%
+Market Return : 46.88%   |   Portfolio Return : 204.54%   |   
+
+--- Action Distribution at step 170000 ---
+SHORT: 22%, HOLD: 37%, LONG: 41%
+
+--- Training Stats at step 170000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 245.68%   |   
+
+--- Action Distribution at step 175000 ---
+SHORT: 27%, HOLD: 38%, LONG: 35%
+Market Return : 46.88%   |   Portfolio Return : 155.59%   |   
+
+--- Action Distribution at step 180000 ---
+SHORT: 27%, HOLD: 34%, LONG: 39%
+
+--- Training Stats at step 180000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 195.77%   |   
+
+--- Action Distribution at step 185000 ---
+SHORT: 27%, HOLD: 44%, LONG: 29%
+Market Return : 46.88%   |   Portfolio Return : 250.70%   |   
+
+--- Action Distribution at step 190000 ---
+SHORT: 18%, HOLD: 47%, LONG: 35%
+
+--- Training Stats at step 190000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 193.82%   |   
+
+--- Action Distribution at step 195000 ---
+SHORT: 30%, HOLD: 35%, LONG: 35%
+Market Return : 46.88%   |   Portfolio Return : 314.35%   |   
+
+--- Action Distribution at step 200000 ---
+SHORT: 18%, HOLD: 36%, LONG: 46%
+
+--- Training Stats at step 200000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 28.80%   |   
+[VAL] step=200,000 sharpe: 5.6655
+Market Return : 46.88%   |   Portfolio Return : 211.45%   |   
+
+--- Action Distribution at step 205000 ---
+SHORT: 28%, HOLD: 30%, LONG: 42%
+Market Return : 46.88%   |   Portfolio Return : 219.41%   |   
+
+--- Action Distribution at step 210000 ---
+SHORT: 21%, HOLD: 43%, LONG: 36%
+
+--- Training Stats at step 210000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 224.77%   |   
+
+--- Action Distribution at step 215000 ---
+SHORT: 16%, HOLD: 49%, LONG: 35%
+Market Return : 46.88%   |   Portfolio Return : 267.41%   |   
+
+--- Action Distribution at step 220000 ---
+SHORT: 16%, HOLD: 43%, LONG: 41%
+
+--- Training Stats at step 220000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 235.62%   |   
+
+--- Action Distribution at step 225000 ---
+SHORT: 17%, HOLD: 42%, LONG: 41%
+Market Return : 46.88%   |   Portfolio Return : 367.72%   |   
+
+--- Action Distribution at step 230000 ---
+SHORT: 24%, HOLD: 36%, LONG: 40%
+
+--- Training Stats at step 230000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 247.08%   |   
+
+--- Action Distribution at step 235000 ---
+SHORT: 22%, HOLD: 33%, LONG: 45%
+Market Return : 46.88%   |   Portfolio Return : 328.39%   |   
+
+--- Action Distribution at step 240000 ---
+SHORT: 25%, HOLD: 36%, LONG: 39%
+
+--- Training Stats at step 240000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 277.15%   |   
+
+--- Action Distribution at step 245000 ---
+SHORT: 35%, HOLD: 29%, LONG: 36%
+Market Return : 46.88%   |   Portfolio Return : 293.15%   |   
+
+--- Action Distribution at step 250000 ---
+SHORT: 25%, HOLD: 40%, LONG: 35%
+
+--- Training Stats at step 250000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 32.64%   |   
+[VAL] step=250,000 sharpe: 7.6532
+  ↳ New best model saved to best_fold3.zip
+Market Return : 46.88%   |   Portfolio Return : 443.93%   |   
+
+--- Action Distribution at step 255000 ---
+SHORT: 26%, HOLD: 35%, LONG: 39%
+Market Return : 46.88%   |   Portfolio Return : 284.78%   |   
+
+--- Action Distribution at step 260000 ---
+SHORT: 14%, HOLD: 36%, LONG: 50%
+
+--- Training Stats at step 260000 ---
+Recent reward mean: 0.0014, std: 0.0081
+Action distribution: [97  3]
+Value estimate mean: 0.3064, std: 1.7440
+Market Return : 46.88%   |   Portfolio Return : 392.15%   |   
+
+--- Action Distribution at step 265000 ---
+SHORT: 18%, HOLD: 42%, LONG: 40%
+Market Return : 46.88%   |   Portfolio Return : 398.06%   |   
+
+--- Action Distribution at step 270000 ---
+SHORT: 19%, HOLD: 40%, LONG: 41%
+
+--- Training Stats at step 270000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 392.15%   |   
+
+--- Action Distribution at step 275000 ---
+SHORT: 28%, HOLD: 34%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 231.55%   |   
+
+--- Action Distribution at step 280000 ---
+SHORT: 18%, HOLD: 30%, LONG: 52%
+
+--- Training Stats at step 280000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 247.59%   |   
+
+--- Action Distribution at step 285000 ---
+SHORT: 22%, HOLD: 29%, LONG: 49%
+Market Return : 46.88%   |   Portfolio Return : 400.58%   |   
+
+--- Action Distribution at step 290000 ---
+SHORT: 23%, HOLD: 36%, LONG: 41%
+
+--- Training Stats at step 290000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 327.49%   |   
+
+--- Action Distribution at step 295000 ---
+SHORT: 24%, HOLD: 26%, LONG: 50%
+Market Return : 46.88%   |   Portfolio Return : 303.52%   |   
+
+--- Action Distribution at step 300000 ---
+SHORT: 15%, HOLD: 31%, LONG: 54%
+
+--- Training Stats at step 300000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 25.40%   |   
+[VAL] step=300,000 sharpe: 5.3370
+Market Return : 46.88%   |   Portfolio Return : 481.89%   |   
+
+--- Action Distribution at step 305000 ---
+SHORT: 28%, HOLD: 20%, LONG: 52%
+Market Return : 46.88%   |   Portfolio Return : 227.19%   |   
+
+--- Action Distribution at step 310000 ---
+SHORT: 22%, HOLD: 27%, LONG: 51%
+
+--- Training Stats at step 310000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 410.53%   |   
+
+--- Action Distribution at step 315000 ---
+SHORT: 20%, HOLD: 18%, LONG: 62%
+Market Return : 46.88%   |   Portfolio Return : 441.05%   |   
+
+--- Action Distribution at step 320000 ---
+SHORT: 22%, HOLD: 17%, LONG: 61%
+
+--- Training Stats at step 320000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 635.21%   |   
+
+--- Action Distribution at step 325000 ---
+SHORT: 13%, HOLD: 26%, LONG: 61%
+Market Return : 46.88%   |   Portfolio Return : 446.93%   |   
+
+--- Action Distribution at step 330000 ---
+SHORT: 19%, HOLD: 21%, LONG: 60%
+
+--- Training Stats at step 330000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 313.12%   |   
+
+--- Action Distribution at step 335000 ---
+SHORT: 18%, HOLD: 23%, LONG: 59%
+Market Return : 46.88%   |   Portfolio Return : 421.11%   |   
+
+--- Action Distribution at step 340000 ---
+SHORT: 21%, HOLD: 21%, LONG: 58%
+
+--- Training Stats at step 340000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 415.67%   |   
+
+--- Action Distribution at step 345000 ---
+SHORT: 34%, HOLD: 18%, LONG: 48%
+Market Return : 46.88%   |   Portfolio Return : 367.15%   |   
+
+--- Action Distribution at step 350000 ---
+SHORT: 22%, HOLD: 23%, LONG: 55%
+
+--- Training Stats at step 350000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 37.04%   |   
+[VAL] step=350,000 sharpe: 5.7301
+Market Return : 46.88%   |   Portfolio Return : 478.69%   |   
+
+--- Action Distribution at step 355000 ---
+SHORT: 20%, HOLD: 26%, LONG: 54%
+Market Return : 46.88%   |   Portfolio Return : 547.15%   |   
+
+--- Action Distribution at step 360000 ---
+SHORT: 14%, HOLD: 31%, LONG: 55%
+
+--- Training Stats at step 360000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 345.08%   |   
+
+--- Action Distribution at step 365000 ---
+SHORT: 17%, HOLD: 26%, LONG: 57%
+Market Return : 46.88%   |   Portfolio Return : 322.51%   |   
+
+--- Action Distribution at step 370000 ---
+SHORT: 22%, HOLD: 21%, LONG: 57%
+
+--- Training Stats at step 370000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 410.10%   |   
+
+--- Action Distribution at step 375000 ---
+SHORT: 15%, HOLD: 21%, LONG: 64%
+Market Return : 46.88%   |   Portfolio Return : 499.32%   |   
+
+--- Action Distribution at step 380000 ---
+SHORT: 19%, HOLD: 25%, LONG: 56%
+
+--- Training Stats at step 380000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 344.87%   |   
+
+--- Action Distribution at step 385000 ---
+SHORT: 20%, HOLD: 19%, LONG: 61%
+Market Return : 46.88%   |   Portfolio Return : 409.50%   |   
+
+--- Action Distribution at step 390000 ---
+SHORT: 20%, HOLD: 16%, LONG: 64%
+
+--- Training Stats at step 390000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 433.12%   |   
+
+--- Action Distribution at step 395000 ---
+SHORT: 16%, HOLD: 25%, LONG: 59%
+Market Return : 46.88%   |   Portfolio Return : 428.34%   |   
+
+--- Action Distribution at step 400000 ---
+SHORT: 22%, HOLD: 18%, LONG: 60%
+
+--- Training Stats at step 400000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 26.96%   |   
+[VAL] step=400,000 sharpe: 4.8599
+Market Return : 46.88%   |   Portfolio Return : 485.07%   |   
+
+--- Action Distribution at step 405000 ---
+SHORT: 21%, HOLD: 17%, LONG: 62%
+Market Return : 46.88%   |   Portfolio Return : 489.72%   |   
+
+--- Action Distribution at step 410000 ---
+SHORT: 21%, HOLD: 22%, LONG: 57%
+
+--- Training Stats at step 410000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 562.76%   |   
+
+--- Action Distribution at step 415000 ---
+SHORT: 20%, HOLD: 26%, LONG: 54%
+Market Return : 46.88%   |   Portfolio Return : 449.06%   |   
+
+--- Action Distribution at step 420000 ---
+SHORT: 18%, HOLD: 21%, LONG: 61%
+
+--- Training Stats at step 420000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 333.14%   |   
+
+--- Action Distribution at step 425000 ---
+SHORT: 18%, HOLD: 20%, LONG: 62%
+Market Return : 46.88%   |   Portfolio Return : 454.47%   |   
+
+--- Action Distribution at step 430000 ---
+SHORT: 18%, HOLD: 23%, LONG: 59%
+
+--- Training Stats at step 430000 ---
+Recent reward mean: 0.0490, std: 0.1013
+Action distribution: [87 13]
+Value estimate mean: 3.5226, std: 7.3020
+Market Return : 46.88%   |   Portfolio Return : 433.19%   |   
+
+--- Action Distribution at step 435000 ---
+SHORT: 30%, HOLD: 20%, LONG: 50%
+Market Return : 46.88%   |   Portfolio Return : 458.09%   |   
+
+--- Action Distribution at step 440000 ---
+SHORT: 35%, HOLD: 22%, LONG: 43%
+
+--- Training Stats at step 440000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 437.07%   |   
+
+--- Action Distribution at step 445000 ---
+SHORT: 37%, HOLD: 24%, LONG: 39%
+Market Return : 46.88%   |   Portfolio Return : 416.01%   |   
+
+--- Action Distribution at step 450000 ---
+SHORT: 46%, HOLD: 14%, LONG: 40%
+
+--- Training Stats at step 450000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 35.00%   |   
+[VAL] step=450,000 sharpe: 5.7018
+Market Return : 46.88%   |   Portfolio Return : 379.50%   |   
+
+--- Action Distribution at step 455000 ---
+SHORT: 40%, HOLD: 20%, LONG: 40%
+Market Return : 46.88%   |   Portfolio Return : 400.29%   |   
+
+--- Action Distribution at step 460000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+
+--- Training Stats at step 460000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 430.49%   |   
+
+--- Action Distribution at step 465000 ---
+SHORT: 44%, HOLD: 17%, LONG: 39%
+Market Return : 46.88%   |   Portfolio Return : 393.67%   |   
+
+--- Action Distribution at step 470000 ---
+SHORT: 48%, HOLD: 12%, LONG: 40%
+
+--- Training Stats at step 470000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 370.91%   |   
+
+--- Action Distribution at step 475000 ---
+SHORT: 34%, HOLD: 16%, LONG: 50%
+Market Return : 46.88%   |   Portfolio Return : 440.98%   |   
+
+--- Action Distribution at step 480000 ---
+SHORT: 35%, HOLD: 18%, LONG: 47%
+
+--- Training Stats at step 480000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 491.08%   |   
+
+--- Action Distribution at step 485000 ---
+SHORT: 50%, HOLD: 14%, LONG: 36%
+Market Return : 46.88%   |   Portfolio Return : 392.07%   |   
+
+--- Action Distribution at step 490000 ---
+SHORT: 46%, HOLD: 13%, LONG: 41%
+
+--- Training Stats at step 490000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 416.23%   |   
+
+--- Action Distribution at step 495000 ---
+SHORT: 51%, HOLD: 20%, LONG: 29%
+Market Return : 46.88%   |   Portfolio Return : 347.19%   |   
+
+--- Action Distribution at step 500000 ---
+SHORT: 35%, HOLD: 19%, LONG: 46%
+
+--- Training Stats at step 500000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 38.76%   |   
+[VAL] step=500,000 sharpe: 6.2639
+Market Return : 46.88%   |   Portfolio Return : 492.51%   |   
+
+--- Action Distribution at step 505000 ---
+SHORT: 37%, HOLD: 21%, LONG: 42%
+Market Return : 46.88%   |   Portfolio Return : 538.18%   |   
+
+--- Action Distribution at step 510000 ---
+SHORT: 35%, HOLD: 21%, LONG: 44%
+
+--- Training Stats at step 510000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 481.32%   |   
+
+--- Action Distribution at step 515000 ---
+SHORT: 34%, HOLD: 28%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 476.84%   |   
+
+--- Action Distribution at step 520000 ---
+SHORT: 33%, HOLD: 23%, LONG: 44%
+
+--- Training Stats at step 520000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 489.37%   |   
+
+--- Action Distribution at step 525000 ---
+SHORT: 35%, HOLD: 27%, LONG: 38%
+Market Return : 46.88%   |   Portfolio Return : 570.62%   |   
+
+--- Action Distribution at step 530000 ---
+SHORT: 33%, HOLD: 25%, LONG: 42%
+
+--- Training Stats at step 530000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 571.60%   |   
+
+--- Action Distribution at step 535000 ---
+SHORT: 29%, HOLD: 24%, LONG: 47%
+Market Return : 46.88%   |   Portfolio Return : 724.12%   |   
+
+--- Action Distribution at step 540000 ---
+SHORT: 34%, HOLD: 25%, LONG: 41%
+
+--- Training Stats at step 540000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 497.41%   |   
+
+--- Action Distribution at step 545000 ---
+SHORT: 30%, HOLD: 29%, LONG: 41%
+Market Return : 46.88%   |   Portfolio Return : 516.46%   |   
+
+--- Action Distribution at step 550000 ---
+SHORT: 29%, HOLD: 29%, LONG: 42%
+
+--- Training Stats at step 550000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return :  4.83%   |   Portfolio Return : 45.26%   |   
+[VAL] step=550,000 sharpe: 7.0643
+Market Return : 46.88%   |   Portfolio Return : 409.83%   |   
+
+--- Action Distribution at step 555000 ---
+SHORT: 36%, HOLD: 23%, LONG: 41%
+Market Return : 46.88%   |   Portfolio Return : 542.28%   |   
+
+--- Action Distribution at step 560000 ---
+SHORT: 42%, HOLD: 16%, LONG: 42%
+
+--- Training Stats at step 560000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 505.20%   |   
+
+--- Action Distribution at step 565000 ---
+SHORT: 28%, HOLD: 28%, LONG: 44%
+Market Return : 46.88%   |   Portfolio Return : 496.66%   |   
+
+--- Action Distribution at step 570000 ---
+SHORT: 24%, HOLD: 34%, LONG: 42%
+
+--- Training Stats at step 570000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 479.99%   |   
+
+--- Action Distribution at step 575000 ---
+SHORT: 23%, HOLD: 34%, LONG: 43%
+Market Return : 46.88%   |   Portfolio Return : 724.30%   |   
+
+--- Action Distribution at step 580000 ---
+SHORT: 27%, HOLD: 28%, LONG: 45%
+
+--- Training Stats at step 580000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 707.99%   |   
+
+--- Action Distribution at step 585000 ---
+SHORT: 28%, HOLD: 27%, LONG: 45%
+Market Return : 46.88%   |   Portfolio Return : 716.53%   |   
+
+--- Action Distribution at step 590000 ---
+SHORT: 22%, HOLD: 32%, LONG: 46%
+
+--- Training Stats at step 590000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+Market Return : 46.88%   |   Portfolio Return : 477.01%   |   
+
+--- Action Distribution at step 595000 ---
+SHORT: 26%, HOLD: 26%, LONG: 48%
+Market Return : 46.88%   |   Portfolio Return : 558.01%   |   
+
+--- Action Distribution at step 600000 ---
+SHORT: 23%, HOLD: 33%, LONG: 44%
+
+--- Training Stats at step 600000 ---
+Recent reward mean: 0.0910, std: 0.1241
+Action distribution: [80  5 15]
+Value estimate mean: 7.2712, std: 9.9163
+Market Return :  4.83%   |   Portfolio Return : 47.32%   |   
+[VAL] step=600,000 sharpe: 8.3146
+  ↳ New best model saved to best_fold3.zip
+[KL‑CB] ema_kl=3.63e-02  (1/10)
+Market Return : 46.88%   |   Portfolio Return : 631.16%   |   
+[KL‑CB] ema_kl=3.55e-02  (2/10)
+[KL‑CB] ema_kl=3.51e-02  (3/10)
+
+--- Action Distribution at step 605000 ---
+SHORT: 20%, HOLD: 43%, LONG: 37%
+[KL‑CB] ema_kl=3.49e-02  (4/10)
+Market Return : 46.88%   |   Portfolio Return : 513.51%   |   
+[KL‑CB] ema_kl=3.53e-02  (5/10)
+
+--- Action Distribution at step 610000 ---
+SHORT: 19%, HOLD: 41%, LONG: 40%
+
+--- Training Stats at step 610000 ---
+Recent reward mean: 0.0000, std: 0.0000
+Action distribution: [100]
+Value estimate mean: 0.0000, std: 0.0000
+⚠️ WARNING: Low action diversity - model may be stuck!
+⚠️ WARNING: Low value diversity - critic may be stuck!
+[KL‑CB] ema_kl=3.45e-02  (6/10)
+Market Return : 46.88%   |   Portfolio Return : 541.11%   |   
+[KL‑CB] ema_kl=3.41e-02  (7/10)
+[KL‑CB] ema_kl=3.54e-02  (8/10)
+
+--- Action Distribution at step 615000 ---
+SHORT: 18%, HOLD: 40%, LONG: 42%
+[KL‑CB] ema_kl=3.63e-02  (9/10)
+Market Return : 46.88%   |   Portfolio Return : 750.97%   |   
+[KL‑CB] ema_kl=3.54e-02  (10/10)
+🟥 Early-stop por KL: sin cambios significativos 10 rollouts seguidos.
+Fold 3 | sharpe: 10.89
+Fold 3 | win-rate: 38.00%
+Fold 3 | profit_factor: 1.60
+Fold 3 | max_DD_dur.: 122 pasos
+Fold 3 | bull perf.: 0.00%
+Fold 3 | bear perf.: 47.78%
+Market Return :  4.83%   |   Portfolio Return : 54.40%   |   
+FOLD 3 extra metrics: {'annualized_sharpe': 0.0, 'win_rate': 0.0, 'profit_factor': 0.0, 'max_dd_duration': 0, 'regime_performance': {'bull': 0.0, 'bear': 0.0}}
+Retorno medio: 0.4889581207278599
+Max DD medio: 0.07477526066735393
+
+Resultados walk‑forward:
+   fold  val_return    max_dd
+0     0    0.216901  0.120688
+1     1    0.765953  0.079477
+2     2    0.478010  0.058778
+3     3    0.494969  0.040158
+Retorno medio: 0.4889581207278599
+Max DD medio: 0.07477526066735393

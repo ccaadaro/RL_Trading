@@ -220,26 +220,27 @@ import numpy as np
 
 def reward(history,
            window=48,       
-           max_dd_penalty=0.5,      # Reduced to allow more risk taking
-           fee_penalty_k=3e-4,      # Reduced to allow more trading
-           pnl_alpha=0.4,           # Reduced to balance with Sharpe
-           sharpe_scale=0.25):      # Significantly increased for consistency
+           max_dd_penalty=0.5,      
+           fee_penalty_k=3e-4,      
+           pnl_alpha=0.4,        
+           sharpe_scale=0.25,
+           exploration_bonus=0.01):  # Add exploration bonus
     """
-    Improved reward function balancing short-term returns with consistency
+    Improved reward function with exploration incentives
     """
     nav = np.asarray(history['portfolio_valuation', :], float)
     if nav.size < 2:
         return 0.0
 
-    # PNL component with smoother scaling
+    # PNL component 
     log_ret = 0.0
     if nav[-2] > 1e-9: 
         log_ret = np.log(nav[-1] / nav[-2])
         if np.isnan(log_ret) or np.isinf(log_ret):
             log_ret = 0.0
     
-    # More balanced sigmoid scaling instead of tanh for better gradients
     pnl_reward = pnl_alpha * (2 / (1 + np.exp(-15 * log_ret)) - 1)
+
 
     # Enhanced Sharpe with longer history when available
     sharpe_reward = 0.0
@@ -257,13 +258,23 @@ def reward(history,
                     # Higher scale and smoother growth curve
                     sharpe_reward = sharpe_scale * (2 / (1 + np.exp(-0.5 * sharpe_calc)) - 1)
     
-    # Market regime adaptation - bonus for profitable trades in difficult regimes
     regime_bonus = 0.0
-    if nav.size > 5 and log_ret > 0:
-        regimes = history['data_market_regime_code', -5:]
-        bear_conditions = (regimes <= 1).mean() > 0.6  # Mostly bearish recently
-        if bear_conditions:
-            regime_bonus = 0.1 * log_ret  # Bonus for successful bear market trades
+    try:
+        if nav.size > 5 and log_ret > 0 and 'data_market_regime_code' in history.columns:
+            regimes = history['data_market_regime_code', -5:]
+            bear_conditions = (regimes <= 1).mean() > 0.6
+            if bear_conditions:
+                regime_bonus = 0.1 * log_ret
+    except (ValueError, KeyError):
+        # Fall back silently if the feature doesn't exist
+        pass
+    
+    # Action diversity bonus - encourage changing positions
+    diversity_bonus = 0.0
+    if history.size > 2:
+        last_positions = history['position', -5:] if history.size >= 5 else history['position', :]
+        if len(last_positions) > 1 and np.std(last_positions) > 0.01:
+            diversity_bonus = exploration_bonus
     
     
     
@@ -288,15 +299,13 @@ def reward(history,
              trade_events = np.diff(position_history) != 0
              fee_pen_val = fee_penalty_k * trade_events.sum() / len(trade_events) # Normalizar por número de oportunidades de trade
         
-    final_reward = pnl_reward + sharpe_reward - dd_penalty_val - fee_pen_val
+    final_reward = pnl_reward + sharpe_reward + regime_bonus + diversity_bonus - dd_penalty_val - fee_pen_val
     
+    # Ensure we return a valid number
     if np.isnan(final_reward) or np.isinf(final_reward):
-        return 0.0 # Devolver 0 si la recompensa es inválida
-    final_reward = pnl_reward + sharpe_reward + regime_bonus - dd_penalty_val - fee_pen_val
-
-
+        return 0.0
+        
     return final_reward
-
 
 
 def basic_reward_function(history : History):
