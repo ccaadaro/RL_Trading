@@ -12,11 +12,13 @@ from stable_baselines3.common.callbacks import CallbackList
 
 from trading_env.trading_env import TradingEnv, reward as risk_reward   # ← NUEVO
 from stable_baselines3.common.policies import ActorCriticPolicy
-
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestRegressor
 from trading_env.trading_env import TradingEnv
 import pandas as pd
 import gymnasium as gym
 from sb3_contrib import RecurrentPPO
+from sb3_contrib.common.recurrent.policies import RecurrentActorCriticPolicy
 from sb3_contrib.ppo_recurrent.policies import MlpLstmPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -37,6 +39,85 @@ def _sharpe_ratio(nav: np.ndarray) -> float:
     rets = np.diff(np.log(nav))
     return (rets.mean() / (rets.std() + 1e-9)) * np.sqrt(8_760)
 
+
+class ValidationPerformanceCallback(BaseCallback):
+    """Detiene entrenamiento si train y validation divergen demasiado"""
+    def __init__(self, eval_env, check_freq=10000, max_train_val_ratio=2.0):
+        super().__init__()
+        self.eval_env = eval_env
+        self.check_freq = check_freq
+        self.max_ratio = max_train_val_ratio
+        
+    def _evaluate_performance(self, env):
+        """Evalúa el rendimiento del modelo en un entorno dado de manera robusta"""
+        # Reset del entorno con manejo de diferentes formatos de retorno
+        reset_result = env.reset()
+        if isinstance(reset_result, tuple):
+            obs = reset_result[0]  # gym >= 0.26: (obs, info)
+        else:
+            obs = reset_result
+        
+        done = False
+        valuations = []
+        
+        # Ejecutar el modelo en deterministic mode con manejo de excepciones
+        while not done:
+            action, _ = self.model.predict(obs, deterministic=True)
+            
+            try:
+                # Intenta con VecEnv que devuelve (obs, rewards, dones, infos)
+                step_result = env.step(action)
+                
+                # Manejar diferentes formatos de retorno
+                if len(step_result) == 4:  # VecEnv o gym < 0.26
+                    next_obs, _, dones, infos = step_result
+                    
+                    # Verificar si dones es un array o un escalar
+                    if isinstance(dones, (list, np.ndarray)):
+                        done = dones[0]
+                    else:
+                        done = dones
+                    
+                    # Obtener la valoración del portafolio
+                    if isinstance(infos, list) and len(infos) > 0:
+                        val = infos[0].get("portfolio_valuation", 1.0)
+                    else:
+                        val = infos.get("portfolio_valuation", 1.0) if isinstance(infos, dict) else 1.0
+                    
+                elif len(step_result) == 5:  # gym >= 0.26
+                    next_obs, _, terminated, truncated, info = step_result
+                    done = terminated or truncated
+                    
+                    if isinstance(info, dict):
+                        val = info.get("portfolio_valuation", 1.0)
+                    else:
+                        val = 1.0
+                else:
+                    print(f"Formato de retorno no reconocido: {len(step_result)} elementos")
+                    return 1.0
+                
+                valuations.append(val)
+                obs = next_obs
+                
+            except Exception as e:
+                print(f"Error durante la evaluación: {e}")
+                return 1.0  # Valor por defecto en caso de error
+        
+        # Calcular rendimiento (retorno total)
+        if len(valuations) > 1 and valuations[0] > 0:
+            return valuations[-1] / valuations[0]  # Retorno ratio
+        else:
+            return 1.0  # Sin cambios si no hay suficientes datos
+    def _on_step(self):
+        if self.n_calls % self.check_freq == 0:
+            train_perf = self._evaluate_performance(self.model.env)
+            val_perf = self._evaluate_performance(self.eval_env)
+            
+            # Si el rendimiento en training es mucho mayor que en validación
+            if train_perf > self.max_ratio * val_perf:
+                print(f"Early stopping: train_perf={train_perf:.2f} > {self.max_ratio} * val_perf={val_perf:.2f}")
+                return False
+        return True
 
 class ActionTrackingCallback(BaseCallback):
     """Track action distribution over time"""
@@ -444,18 +525,19 @@ class ConservativeRiskLimit(ImprovedRiskLimit):
         return 0.20 + 0.10 * np.tanh(perf * 0.5)
 
 
-def make_walk_forward_splits(df, train_hours=24*210, val_hours=24*60, step_hours=24*30):
-    """Ventanas más largas con mayor overlap para estabilidad"""
+def make_walk_forward_splits(df, train_hours=24*180, val_hours=24*30, gap_hours=24*7):
+    """Añadir gap entre train y validation para prevenir leakage"""
     i_start = 0
     while True:
         train_end = i_start + train_hours
-        val_end = train_end + val_hours
+        val_start = train_end + gap_hours  # Gap temporal importante
+        val_end = val_start + val_hours
         if val_end > len(df):
             break
         train_slice = df.iloc[i_start:train_end].copy()
-        val_slice = df.iloc[train_end:val_end].copy()
+        val_slice = df.iloc[val_start:val_end].copy()
         yield train_slice, val_slice
-        i_start += step_hours  # Paso más pequeño = más folds y estabilidad
+        i_start += val_hours  # Avanzar por validación completa
 
 
 
@@ -861,8 +943,15 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
     
     # –– Escalado robusto SOLO con datos de entrenamiento
     feature_cols = [c for c in train_df.columns if c.endswith("_feature")]
-    selected_features = analyze_feature_importance(train_df, val_df, feature_cols)
-    
+    # Define target (retornos futuros)
+    future_returns = np.log(train_df['close']).diff().shift(-1).fillna(0)
+
+    # Selección recursiva de características 
+    selector = RFE(RandomForestRegressor(n_estimators=100), n_features_to_select=10)
+    selector.fit(train_df[feature_cols], future_returns)
+
+    # Solo mantener características importantes
+    selected_features = [f for f, selected in zip(feature_cols, selector.support_) if selected]
     # Keep only the base columns and selected features
     base_cols = ['open', 'high', 'low', 'close', 'volume', 'amount']
     required_cols = ['market_regime_code']
@@ -913,42 +1002,36 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
 
     
     policy_kwargs = dict(
-        features_extractor_class=TransformerFeatures,
-        features_extractor_kwargs=dict(
-            embed_dim=128,     # Reduced to avoid overflow
-            n_heads=4,         # Fewer heads reduce chance of numerical issues
-            num_layers=2,      # Shallow network
-            ff_dim=256,        # Smaller feed-forward layer
-            dropout=0.1
-        ),
+        lstm_hidden_size=32,       # Tamaño moderado
+        n_lstm_layers=1,           # Una sola capa LSTM
         net_arch=dict(
-            pi=[128, 64],      # Smaller actor network
-            vf=[256, 128]      # Smaller critic network
+            pi=[32],               # Red muy pequeña post-LSTM para actor
+            vf=[64]                # Red pequeña para el crítico
         ),
-        activation_fn=torch.nn.ReLU,  # ReLU is more stable than Mish
-        ortho_init=True
+        activation_fn=torch.nn.Tanh,  # Tanh a veces funciona mejor para secuencias
+        ortho_init=True,
+        enable_critic_lstm=True,   # Compartir LSTM entre actor y crítico
     )
     
     INIT_ENT = ent_schedule(1.0)      # valor al principio (progress=1)
 
     # –– Modelo nuevo por fold
     # 3. More conservative PPO parameters
-    model = PPO(
-        policy=ActorCriticPolicy,
+    model = RecurrentPPO(
+        policy="MlpLstmPolicy",
+        policy_kwargs=policy_kwargs,
         env=train_env,
-        n_steps=2048,        # Smaller steps for more frequent updates
-        batch_size=128,      # Smaller batches for better gradient estimates
-        n_epochs=10,
-        learning_rate=3e-4,  # Higher learning rate
-        clip_range=0.2,      # More aggressive clipping to allow bigger updates
-        ent_coef=ent_schedule,
-        target_kl=0.03,      # More relaxed KL divergence target
-        gamma=0.99,
-        gae_lambda=0.95,
-        max_grad_norm=1.0,   # Allow larger gradient steps
+        n_steps=128,               # Menor que 512
+        batch_size=32,
+        n_epochs=3,                # Menor que 4
+        learning_rate=1e-4,        # Menor que 2e-4
+        ent_coef=0.2,              # Mayor que 0.1 (más exploración)
+        gamma=0.985,               # Ligeramente menor descuento
+        gae_lambda=0.92,
+        max_grad_norm=0.3,         # Más restrictivo
         verbose=0,
         device="cpu",
-        tensorboard_log="logs_fixed"
+        tensorboard_log="logs_recurrent"
     )
 
 
@@ -962,13 +1045,14 @@ for fold, (train_df, val_df) in enumerate(make_walk_forward_splits(df)):
 
     callbacks = CallbackList([
         EntropyDecay(ent_schedule, total_ts=800_000),  # Double training time
-        ActionTrackingCallback(val_env, check_freq=5000),
+        ActionTrackingCallback(val_env, check_freq=10000),
         EarlyStopKL(kl_threshold=1e-4,  # Lower threshold
                     patience=10,        # More patience
                     warmup_rollouts=25, # More warmup
                     min_timesteps=600_000,  # Higher min training
                     verbose=1),
-        DetailedLoggingCallback(verbose=1, log_freq=10000),
+        DetailedLoggingCallback(verbose=1, log_freq=20000),
+        ValidationPerformanceCallback(val_env, check_freq=25000),
         PeriodicValidation(val_env,
                         every_ts=50_000,
                         save_path=f"best_fold{fold}.zip",

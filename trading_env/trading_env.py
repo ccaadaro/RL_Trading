@@ -220,10 +220,12 @@ import numpy as np
 
 def reward(history,
            window=48,       
-           max_dd_penalty=0.5,      
+           max_dd_penalty=0.8,      
            fee_penalty_k=3e-4,      
-           pnl_alpha=0.4,        
+           pnl_alpha=0.3,        
            sharpe_scale=0.25,
+           diversity_penalty=0.1,
+           consistency_factor=0.3,
            exploration_bonus=0.01):  # Add exploration bonus
     """
     Improved reward function with exploration incentives
@@ -298,8 +300,16 @@ def reward(history,
         if len(position_history) > 1:
              trade_events = np.diff(position_history) != 0
              fee_pen_val = fee_penalty_k * trade_events.sum() / len(trade_events) # Normalizar por número de oportunidades de trade
-        
-    final_reward = pnl_reward + sharpe_reward + regime_bonus + diversity_bonus - dd_penalty_val - fee_pen_val
+    
+    last_positions = history['position', -10:] if history.size >= 10 else history['position', :]
+    if len(last_positions) > 5:
+        unique_positions = len(np.unique(last_positions))
+        diversity_score = unique_positions / 3  # 3 posiciones posibles
+        diversity_penalty_value = diversity_penalty * (1 - diversity_score)
+    else:
+        diversity_penalty_value = 0
+
+    final_reward = pnl_reward + sharpe_reward + regime_bonus + diversity_bonus - dd_penalty_val - fee_pen_val - diversity_penalty_value
     
     # Ensure we return a valid number
     if np.isnan(final_reward) or np.isinf(final_reward):
