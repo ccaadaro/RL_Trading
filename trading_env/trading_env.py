@@ -155,167 +155,32 @@ class History:
             raise ValueError(f"Feature {column} does not exist ... Check the available features : {self.columns}")
         self.history_storage[:self.size][t, column_index] = value
 
-# def reward(history: History, risk_free=0.0, max_dd_penalty=0.5):
-#     #––– 1) recupera NAV como float
-#     nav = np.asarray(history['portfolio_valuation', :], dtype=float)
 
-#     #––– 2) retorno logarítmico instantáneo (con control por len<2)
-#     if len(nav) > 1:
-#         ret = np.log(nav[-1] / nav[-2])
-#     else:
-#         ret = 0.0
-
-#     #––– 3) drawdown
-#     peak = nav.max()
-#     dd   = (peak - nav[-1]) / peak if peak > 0 else 0.0
-#     risk_penalty = max_dd_penalty * dd
-
-#     #––– 4) Sharpe ventana corta
-#     window = 48
-#     if len(nav) > window:
-#         rets   = np.diff(np.log(nav[-window:]))
-#         sharpe = (rets.mean() - risk_free) / (rets.std() + 1e-9)
-#     else:
-#         sharpe = 0.0
-
-#     return 10*np.tanh(ret) + 0.1*sharpe - risk_penalty
-
-# def reward(history, max_dd_penalty=0.5, trade_penalty=5e-4, consistency_bonus=0.3):
-#     """Función de recompensa mejorada con foco en rentabilidad sostenible"""
-#     nav = np.asarray(history['portfolio_valuation', :], float)
-#     if len(nav) < 48:
-#         return 0.0
-    
-#     # Retornos logarítmicos multi-escala
-#     short_rets = np.diff(np.log(nav[-24:]))
-#     long_rets = np.diff(np.log(nav)) if len(nav) > 72 else short_rets
-    
-#     # Sharpe ratio anualizado (valoramos consistencia)
-#     short_sharpe = (short_rets.mean() / (short_rets.std() + 1e-9)) * np.sqrt(8760)
-#     long_sharpe = (long_rets.mean() / (long_rets.std() + 1e-9)) * np.sqrt(8760)
-    
-#     # Penalización severa por drawdowns
-#     dd = 1 - nav / np.maximum.accumulate(nav)
-#     max_dd = dd.max()
-#     dd_penalty = max_dd_penalty * (np.exp(3*max_dd) - 1) if max_dd > 0.1 else 0
-    
-#     # Bonificación por consistencia en diferentes ventanas temporales
-#     consistency = consistency_bonus * min(1.0, 1.0 - abs(short_sharpe - long_sharpe)/max(1.0, abs(short_sharpe)))
-    
-#     # Adaptación al régimen de mercado
-#     regimes = history['data_market_regime_code', -48:]
-#     bear_weight = (regimes <= 1).mean()  # Peso de regímenes bajistas
-#     regime_factor = 1 + 0.2 * bear_weight  # Valoramos comportamiento en mercados bajistas
-    
-#     # Penalización por exceso de operaciones
-#     trades = np.diff(history['position_index', :]) != 0
-#     trade_penalty = 0.0003 * trades.sum() if trades.sum() > 5 else 0
-    
-#     return regime_factor * (short_sharpe + 0.5 * long_sharpe + consistency - dd_penalty - trade_penalty)
-
-# -----------------------------------------------------------------------------
-# trading_env/trading_env.py  (o donde definas la reward)
-# -----------------------------------------------------------------------------
 import numpy as np
 
-def reward(history,
-           window=48,       
-           max_dd_penalty=0.8,      
-           fee_penalty_k=3e-4,      
-           pnl_alpha=0.3,        
-           sharpe_scale=0.25,
-           diversity_penalty=0.1,
-           consistency_factor=0.3,
-           exploration_bonus=0.01):  # Add exploration bonus
-    """
-    Improved reward function with exploration incentives
-    """
-    nav = np.asarray(history['portfolio_valuation', :], float)
-    if nav.size < 2:
+
+
+# trading_env.py
+def reward(history, fee_penalty: float = 2e-4):
+    # ► salimos en el primer tick del episodio
+    if history['idx', -1] == 0:
         return 0.0
 
-    # PNL component 
-    log_ret = 0.0
-    if nav[-2] > 1e-9: 
-        log_ret = np.log(nav[-1] / nav[-2])
-        if np.isnan(log_ret) or np.isinf(log_ret):
-            log_ret = 0.0
-    
-    pnl_reward = pnl_alpha * (2 / (1 + np.exp(-15 * log_ret)) - 1)
+    nav_prev, nav_now = history['portfolio_valuation', -2], history['portfolio_valuation', -1]
+    px_prev, px_now   = history['data_close', -2],         history['data_close', -1]
 
+    pnl = np.log(nav_now / nav_prev)
+    mkt = np.log(px_now  / px_prev)
 
-    # Enhanced Sharpe with longer history when available
-    sharpe_reward = 0.0
-    if nav.size >= window + 1:
-        nav_window = nav[-min(len(nav), window*2)-1:]
-        valid_nav = nav_window[np.isfinite(nav_window) & (nav_window > 1e-9)]
-        
-        if len(valid_nav) > 10:  # Need enough samples
-            rets = np.diff(np.log(valid_nav))
-            rets = rets[np.isfinite(rets)]
-            if len(rets) > 5:
-                std_dev = rets.std()
-                if std_dev > 1e-9:
-                    sharpe_calc = (rets.mean() / std_dev) * np.sqrt(8_760)
-                    # Higher scale and smoother growth curve
-                    sharpe_reward = sharpe_scale * (2 / (1 + np.exp(-0.5 * sharpe_calc)) - 1)
-    
-    regime_bonus = 0.0
-    try:
-        if nav.size > 5 and log_ret > 0 and 'data_market_regime_code' in history.columns:
-            regimes = history['data_market_regime_code', -5:]
-            bear_conditions = (regimes <= 1).mean() > 0.6
-            if bear_conditions:
-                regime_bonus = 0.1 * log_ret
-    except (ValueError, KeyError):
-        # Fall back silently if the feature doesn't exist
-        pass
-    
-    # Action diversity bonus - encourage changing positions
-    diversity_bonus = 0.0
-    if history.size > 2:
-        last_positions = history['position', -5:] if history.size >= 5 else history['position', :]
-        if len(last_positions) > 1 and np.std(last_positions) > 0.01:
-            diversity_bonus = exploration_bonus
-    
-    
-    
-    
-    # — Draw‑down instantáneo —
-    current_max_nav = np.nanmax(nav) # Usar nanmax por si hay NaNs
-    dd_current = 0.0
-    if np.isfinite(current_max_nav) and current_max_nav > 1e-9: 
-        dd_current  = 1.0 - nav[-1] / current_max_nav
-        if np.isnan(dd_current) or dd_current < 0: # Si nav[-1] es mayor que max_nav (raro) o NaN
-            dd_current = 0.0
-    elif nav[-1] <= 1e-9: 
-        dd_current = 1.0 
+    excess = pnl - mkt
+    reward = np.tanh(150 * excess)          # rango aprox. ±1
 
-    dd_penalty_val  = max_dd_penalty * dd_current
+    if history['position_index', -1] != history['position_index', -2]:
+        reward -= fee_penalty                 # castigo por rotar
 
-    # — Penalización por frecuencia de trades —
-    fee_pen_val = 0.0
-    if nav.size > 1 : # Evitar error de índice si solo hay un punto en el historial de posiciones
-        position_history = history['position_index', :]
-        if len(position_history) > 1:
-             trade_events = np.diff(position_history) != 0
-             fee_pen_val = fee_penalty_k * trade_events.sum() / len(trade_events) # Normalizar por número de oportunidades de trade
-    
-    last_positions = history['position', -10:] if history.size >= 10 else history['position', :]
-    if len(last_positions) > 5:
-        unique_positions = len(np.unique(last_positions))
-        diversity_score = unique_positions / 3  # 3 posiciones posibles
-        diversity_penalty_value = diversity_penalty * (1 - diversity_score)
-    else:
-        diversity_penalty_value = 0
+    history['reward_raw', -1] = excess        # tracking
+    return np.tanh(150 * excess)  # rango aprox. ±1
 
-    final_reward = pnl_reward + sharpe_reward + regime_bonus + diversity_bonus - dd_penalty_val - fee_pen_val - diversity_penalty_value
-    
-    # Ensure we return a valid number
-    if np.isnan(final_reward) or np.isinf(final_reward):
-        return 0.0
-        
-    return final_reward
 
 
 def basic_reward_function(history : History):
@@ -326,6 +191,17 @@ def dynamic_feature_last_position_taken(history):
 
 def dynamic_feature_real_position(history):
     return history['real_position', -1]
+
+def _bucketize(a):
+    """
+    Map exposure in [-1,1] to bucket 0=SHORT, 1=HOLD, 2=LONG.
+    Works for scalars or arrays; always returns a NumPy array.
+    """
+    arr = np.asarray(a, dtype=float)
+    disc = np.where(arr <= -0.33, -1,
+            np.where(arr >= 0.33,  1, 0)).astype(int) + 1   # → {0,1,2}
+    return disc
+
 
 
 class TradingEnv(gym.Env):
@@ -390,7 +266,7 @@ class TradingEnv(gym.Env):
                 trading_fees = 0,
                 borrow_interest_rate = 0,
                 portfolio_initial_value = 1000,
-                initial_position ='random',
+                initial_position =0,
                 max_episode_duration = 'max',
                 verbose = 1,
                 name = "Stock",
@@ -414,7 +290,7 @@ class TradingEnv(gym.Env):
         self.render_mode = render_mode
         self._set_df(df)
         
-        self.action_space = spaces.Discrete(len(positions))
+        self.action_space = spaces.Box(-1.0, 1.0, shape=(1,), dtype=np.float32)
         BIG = np.finfo(np.float64).max
         low  = np.full((self._nb_features,), -BIG, dtype=np.float64)
         high = np.full((self._nb_features,),  BIG, dtype=np.float64)
@@ -429,15 +305,15 @@ class TradingEnv(gym.Env):
         self.log_metrics = []
 
 
-    MAX_STEP = 0.50
 
     def _trade(self, target_pos, price=None):
         if price is None:
             price = self._get_price()
 
-        target_pos = float(target_pos)
-        delta = np.clip(target_pos - self._position,
-                        -self.MAX_STEP, self.MAX_STEP)
+       
+        
+        delta = np.clip(target_pos - self._position, -1.0, 1.0)
+
         new_pos = self._position + delta
         self._portfolio.trade_to_position(new_pos, price, self.trading_fees)
         self._position = new_pos
@@ -511,6 +387,7 @@ class TradingEnv(gym.Env):
             portfolio_valuation = self.portfolio_initial_value,
             portfolio_distribution = self._portfolio.get_portfolio_distribution(),
             reward = 0,
+            reward_raw = 0,
         )
 
         self.episode_start = True
@@ -519,36 +396,6 @@ class TradingEnv(gym.Env):
 
     def render(self):
         pass
-
-        # ---------- ejecución de la orden ---------------------------------
-    def _trade(self, target_position: float, price: float | None = None) -> None:
-        """
-        Cambia la cartera hacia `target_position` (‑1, 0, +1…) ‑‑
-        limitando la variación por paso a ±33 %.
-
-        Parameters
-        ----------
-        target_position : float   Posición destino.
-        price           : float   Precio de ejecución (close actual si None).
-        """
-        if price is None:
-            price = self._get_price()
-
-        # límite de “paso” para evitar saltos bruscos
-        max_change    = 0.33
-        new_position  = self._position + np.clip(
-            target_position - self._position,
-            -max_change,
-            +max_change
-        )
-
-        # opera la cartera
-        self._portfolio.trade_to_position(
-            new_position,
-            price=price,
-            trading_fees=self.trading_fees
-        )
-        self._position = new_position            # guarda la posición real
 
 
     def _take_action(self, position_index):
@@ -572,64 +419,83 @@ class TradingEnv(gym.Env):
             'persistent': persistent
         }
     
-    def step(self, position_index = None):
-        if position_index is not None:
-            self._take_action(position_index) 
-        prev_valuation = self._portfolio.valorisation(self._get_price(-1))
 
-        self._idx += 1
+          
+
+
+    def step(self, raw_action):
+        # 1️⃣ bound and apply the action
+        target_pos = float(np.clip(raw_action, -1, 1))
+        
+
+        prev_val   = self._portfolio.valorisation(self._get_price(-1))
+        self._trade(target_pos)
+        # 2️⃣ advance time
+        self._idx  += 1
         self._step += 1
-
         self._take_action_order_limit()
-        price = self._get_price()
-        self._portfolio.update_interest(borrow_interest_rate= self.borrow_interest_rate)
-        portfolio_value = self._portfolio.valorisation(price)
-        # Acción ejecutada
-        action = self.positions[position_index]
-        delta = portfolio_value - prev_valuation
-        action_str = {0: "HOLD", 1: "BUY", 2: "SELL"}.get(action, str(action))
-       
 
-        # print(f"[{self.df.index[self._idx]}] Action: {action_str} | "
-        #     f"Price: {price:.2f} | Portfolio Value: {portfolio_value:.2f} | "
-        #     f"ΔValue: {delta:+.2f}")
+        price      = self._get_price()
+        self._portfolio.update_interest(self.borrow_interest_rate)
+        port_val   = self._portfolio.valorisation(price)
+
+        # 3️⃣ **derive** a discrete label only for logs / stats
+        position_index = _bucketize(target_pos)        # ← NEW
+        action_str     = {0: "SHORT", 1: "HOLD", 2: "LONG"}[position_index]
+        delta          = port_val - prev_val
+        # print(f"[{self.df.index[self._idx]}] {action_str} …")
 
         portfolio_distribution = self._portfolio.get_portfolio_distribution()
 
-        done, truncated = False, False
+        # 4️⃣ done / truncated logic
+        done       = port_val <= 0
+        truncated  = (self._idx >= len(self.df)-1) or (
+                    isinstance(self.max_episode_duration, int) and
+                    self._step >= self.max_episode_duration-1)
 
-        if portfolio_value <= 0:
-            done = True
-        if self._idx >= len(self.df) - 1:
-            truncated = True
-        if isinstance(self.max_episode_duration,int) and self._step >= self.max_episode_duration - 1:
-            truncated = True
-
+        # 5️⃣ log to History
+        # Around line 480 in the step() method:
         self.historical_info.add(
-            idx = self._idx,
-            step = self._step,
-            date = self.df.index.values[self._idx],
-            position_index =position_index,
-            position = self._position,
-            real_position = self._portfolio.real_position(price),
-            data =  dict(zip(self._info_columns, self._info_array[self._idx])),
-            portfolio_valuation = portfolio_value,
-            portfolio_distribution = portfolio_distribution, 
-            reward = 0
+            idx                 = self._idx,
+            step                = self._step,
+            date                = self.df.index.values[self._idx],
+            position_index      = position_index,
+            position            = self._position,
+            real_position       = self._portfolio.real_position(price),
+            data                = dict(zip(self._info_columns,
+                                        self._info_array[self._idx])),
+            portfolio_valuation = port_val,
+            portfolio_distribution = portfolio_distribution,
+            reward              = 0.0,
+            reward_raw          = 0.0  # Add this line to fix the error
         )
+
+        # 6️⃣ compute reward exactly as before
+        # After calculating the reward
         if not done:
-            reward = self.reward_function(self.historical_info)  # ← NUEVO
+            reward = self.reward_function(self.historical_info)
             self.historical_info["reward", -1] = reward
+            
+            # Also make sure to update reward_raw
+            if "reward_raw" in self.historical_info.columns:
+                # If there's a raw reward in the info, use it
+                raw_reward = self.historical_info['reward_raw', -1]
+
+                self.historical_info["reward_raw", -1] = raw_reward
 
         if done or truncated:
-            ep_pnl = self._portfolio.valorisation(price) / self.portfolio_initial_value - 1
-            terminal_bonus = 0.5 * np.tanh(5 * ep_pnl)   # entre −0.5 y +0.5
+            ep_pnl          = port_val / self.portfolio_initial_value - 1
+            terminal_bonus  = 0.5 * np.tanh(5*ep_pnl)
             self.historical_info["reward", -1] += terminal_bonus
             self.calculate_metrics()
             self.log()
+        returned_reward_value = self.historical_info["reward", -1]
         self.episode_start = done or truncated
-        
-        return self._get_obs(),  self.historical_info["reward", -1], done, truncated, self.historical_info[-1]
+        return self._get_obs(), returned_reward_value, done, truncated, self.historical_info[-1]
+
+
+
+    
 
     def add_metric(self, name, function):
         self.log_metrics.append({
@@ -637,13 +503,17 @@ class TradingEnv(gym.Env):
             'function': function
         })
     def calculate_metrics(self):
+        # Usar df en lugar de historical_info para calcular el return de mercado
+        market_return_value = 100 * (self.df['close'].iloc[-1] / self.df['close'].iloc[0] - 1)
+        portfolio_return_value = 100 * (self.historical_info['portfolio_valuation', -1] / 
+                                        self.historical_info['portfolio_valuation', 0] - 1)
+        
         self.results_metrics = {
-            "Market Return" : f"{100*(self.historical_info['data_close', -1] / self.historical_info['data_close', 0] -1):5.2f}%",
-            "Portfolio Return" : f"{100*(self.historical_info['portfolio_valuation', -1] / self.historical_info['portfolio_valuation', 0] -1):5.2f}%",
+            "Market Return" : f"{market_return_value:.2f}%",
+            "Portfolio Return" : f"{portfolio_return_value:.2f}%",
+            "Market Return Value": market_return_value,
+            "Portfolio Return Value": portfolio_return_value
         }
-
-        for metric in self.log_metrics:
-            self.results_metrics[metric['name']] = metric['function'](self.historical_info)
     def get_metrics(self):
         return self.results_metrics
     def log(self):
