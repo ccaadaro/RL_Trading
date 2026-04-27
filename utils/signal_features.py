@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import pandas_ta as ta
 from typing import Optional
+from utils import tv_indicators as tv
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -85,6 +86,11 @@ SIGNAL_FEAT_COLS_V2 = sorted([
     "pr_exhaust_ob_feature", "pr_exhaust_os_feature",
     "pr_exhaust_ob_reversal_feature", "pr_exhaust_os_reversal_feature",
     "pr_spread_feature",
+    # TV Indicators Block
+    "hull_hma_55_feature", "hull_hma_slope_feature", "hull_hma_dist_feature",
+    "wvf_panic_feature", "wvf_val_feature",
+    "laguerre_trend_feature", "laguerre_dispersion_feature",
+    "koncorde_osc_pos_feature", "koncorde_osc_neg_feature",
     # Institutional placeholders
     "l2_imbalance_feature", "liq_vola_feature", "cross_exchange_premium_feature",
 ])
@@ -145,6 +151,30 @@ def compute_ohlcv_features(df: pd.DataFrame) -> pd.DataFrame:
     df["pr_exhaust_ob_reversal_feature"] = ((~ob) & ob.shift(1)).astype(float).fillna(0)
     df["pr_exhaust_os_reversal_feature"] = ((~os) & os.shift(1)).astype(float).fillna(0)
     df["pr_spread_feature"] = (pr_fast - pr_slow) / 100.0
+
+    # ── TV Indicators ──
+    # Hull Suite (Swing length 55)
+    hma55 = tv.hma(close, 55)
+    df["hull_hma_55_feature"] = (close / hma55 - 1).fillna(0) # distance as feature
+    df["hull_hma_slope_feature"] = (hma55 / hma55.shift(1) - 1).fillna(0)
+    df["hull_hma_dist_feature"] = (close - hma55) / close.clip(1e-10)
+
+    # Williams Vix Fix
+    wvf_df = tv.williams_vix_fix(df)
+    df["wvf_panic_feature"] = wvf_df["wvf_panic"]
+    df["wvf_val_feature"] = wvf_df["wvf"] / 100.0 # Normalized
+
+    # Laguerre Multi-Filter (Simplified to 3 bands)
+    lag_fast = tv.laguerre_filter(close, 0.2)
+    lag_mid  = tv.laguerre_filter(close, 0.5)
+    lag_slow = tv.laguerre_filter(close, 0.8)
+    df["laguerre_trend_feature"] = (lag_fast / lag_slow - 1).fillna(0)
+    df["laguerre_dispersion_feature"] = pd.concat([lag_fast, lag_mid, lag_slow], axis=1).std(axis=1) / close.clip(1e-10)
+
+    # Koncorde Components
+    konk_df = tv.koncorde_components(df)
+    df["koncorde_osc_pos_feature"] = konk_df["osc_pos"] / 100.0
+    df["koncorde_osc_neg_feature"] = konk_df["osc_neg"] / 100.0
 
     # ── Institutional Data Placeholders (to be populated by daemon) ──
     # If not present in incoming df, we init to 0.0
