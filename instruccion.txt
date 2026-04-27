@@ -1,0 +1,1 @@
+Before making changes, read AGENTS.md and follow it strictly. Then inspect git status and summarize the current branch state.
