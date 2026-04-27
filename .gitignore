@@ -172,3 +172,34 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# ─── Project-specific ────────────────────────────────────
+# Training artifacts (regenerated each run)
+checkpoints/
+folds/
+cache/
+models/
+logs*/
+reports/
+
+# Data and databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.csv
+*.feather
+*.parquet
+*.pkl
+*.out
+*.html
+
+# Exception for important files
+!requirements.txt
+!LICENSE
+
+# Sensitive files
+key.txt
+
+# IDE
+.vscode/
+.claude/
