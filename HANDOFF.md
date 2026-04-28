@@ -4,60 +4,80 @@
 *   **System**: InstitutionalDollarStrategy (ZMQ-based shell for aggTrade bars).
 *   **Asset**: BTC/USDT ($2M Dollar Bars).
 *   **Goal**: Reach Net PnL > 0 after 0.05% fees + 0.02% slippage (Total 0.07% per side).
-*   **Branch**: `feat/tv-indicators-features` (Already pushed).
+*   **Branch**: `feat/tv-indicators-features` (3 commits ahead of origin, not pushed yet).
 
-## 2. Model Status
-*   **Alpha v2.1 "Elite" (Model C)**: 21 features (Microstructure + WVF + %R). AUC OOS: 0.5176.
-*   **Institutional Base (Model A)**: 14 features (Solo Microestructura).
-*   **Validation Results**:
-    *   **Audit Fix**: Corrected a scale error in `global_alpha_replay.py`. Real monthly turnover is ~40x (not 2.24x).
-    *   **Alpha Noise**: The model captures +15% gross alpha, but pays -67% in costs. Expected bps per trade is < 7bps hurdle.
-    *   **Conclusion**: Pure directional alpha is not enough. We need a "Gatekeeper".
+## 2. Architecture Verdict (2026-04-28)
 
-## 3. Work in Progress: Meta-Model Gatekeeper
-We implemented a binary classifier (LightGBM) to veto Alpha signals based on market context.
+After a full audit session, the gate-based architecture is **structurally falsified**:
 
-*   **Logic**: `y_meta = 1` if `forward_return_50_bars > 2 * costs`.
-*   **Results (OOS Evaluation)**:
-    *   **AUC**: 0.9827 (Exceptionally high, likely due to regime/volatility predictive power).
-    *   **Precision (Tradeability)**: 95.02%.
-    *   **Net Bps Improvement**: Average net bps increased from **289 bps** (all alpha signals) to **2436 bps** (meta-filtered).
-    *   **Note**: High values are likely due to clustering during volatility expansions.
-*   **Current State**:
-    *   `scripts/generate_metamodel_data.py`: **COMPLETED**.
-    *   `scripts/train_metamodel.py`: **COMPLETED**. Model saved at `models/meta_model_v1/gatekeeper.txt`.
+| Strategy | ROI | Trades | Net bps/trade |
+|---|---|---|---|
+| Buy & Hold | +276% | 0 | — |
+| Alpha+Meta (default dyn gate) | +0.00% | 0 | — |
+| Alpha+Meta (static gate) | -76.61% | 1589 | -1.7 |
+| EMA50>200 trend | -23.87% | 970 | — |
+| Regime-participation sizing | -79% | 4439 | — |
 
-## 4. Next Recommended Steps
-1.  **Finish Data Generation**: Wait for `scripts/generate_metamodel_data.py` to complete.
-2.  **Train Meta-Model**: Run `python scripts/train_metamodel.py`.
-3.  **Evaluate Net Bps**: Ensure `Avg Net Bps (Meta-Filtered) > 0` in the OOS set.
-4.  **Integrate**: Modify `InstitutionalDollarStrategy.py` to check `meta_model.predict()` before entry.
-5.  **Final Validation**: Run `global_alpha_replay.py` with the combined logic.
+**Root cause**: 308k bars in 2 years = 422 bars/day. At 14bps/roundtrip, any
+model making >30 trades/month needs AUC > 0.55 just to break even. Current
+alpha (AUC OOS = 0.5104 with TB labels) produces -1.7 bps net/trade at $2M.
+
+**Key bugs found and fixed in `scripts/global_alpha_replay.py`**:
+- Feature window mismatch train vs inference (zscore win 200 vs 10000, etc.)
+- HMM `fit_predict` in-sample leakage → walk-forward HMM now used
+- Gate diagnostics: Institutional alpha NEVER exceeds 0.55 (max prob 0.61)
+
+## 3. Current Experiment in Progress
+
+**Coarse bar battery**: testing whether signal quality improves at $20M/$50M.
+
+```bash
+# Running as background process (PID ~524057)
+python scripts/run_coarse_bar_battery.py \
+  --thetas 20000000 50000000 --hold-days 3 --pt-sl 2.0
+
+# Monitor
+tail -f logs/battery_coarse_bars.log
+```
+
+Auto-calibrated parameters:
+| theta | bars/day | daily_window | vertical_bars | cusum_span |
+|---|---|---|---|---|
+| $2M | 288 | 288 | 864 | 1152 |
+| $20M | 29 | 29 | 86 | 115 |
+| $50M | 12 | 12 | 35 | 46 |
+
+**Decision gate**: net_bps > 0 AND TO < 50/month → only then proceed.
+
+## 4. Next Steps (in strict order)
+
+1. Wait for battery to finish: `cat logs/battery_coarse_bars.log`
+2. Run `--eval-only` on the results to see the summary table.
+3. **If $20M or $50M shows net_bps > 0**: retrain the full alpha there.
+4. **If all still negative**: the alpha features themselves are the issue, not the resolution. Pivot to redesigning the target with more discriminative features (L2 orderbook depth, funding rate regime, cross-asset correlation regime).
+5. **Do NOT** retrain at $2M. Do NOT tune the meta-model v1. Concluded architecturally infeasible.
 
 ## 5. File References
-*   `InstitutionalDollarStrategy.py`: Main strategy shell.
-*   `scripts/global_alpha_replay.py`: Validation engine (corrected logic).
-*   `utils/signal_features.py`: Feature sets definitions.
-*   `utils/risk_directors.py`: HMM & Turbulence implementation.
-*   `reports/`: Equity curves with drawdown shading.
 
+*   `scripts/global_alpha_replay.py`: Replay engine with benchmarks + gate diagnostics.
+*   `scripts/regime_participation_replay.py`: Sizing-based alternative (tested, still fails at $2M).
+*   `scripts/run_coarse_bar_battery.py`: Coarse bar experiment battery.
+*   `scripts/build_dollar_bars.py`: Builds dollar bars from raw aggTrades.
+*   `scripts/compute_triple_barrier.py`: CUSUM + Triple Barrier labeling.
+*   `scripts/build_features_dollar.py`: Feature engineering on dollar bars.
+*   `scripts/train_dollar_alpha.py`: LightGBM alpha model with uniqueness+recency weights.
+*   `models/dollar_alpha_v1/latest_model.txt`: Elite v2.1 (21 features), AUC 0.5104.
+*   `models/meta_model_v1/gatekeeper.txt`: Meta-model (do not continue investing in this).
+*   `logs/battery_coarse_bars.log`: Live output of current battery run.
 
-Estado Actual y Logros
-Auditoría de Turnover: Hemos corregido el cálculo en el motor de validación. El turnover real del modelo Elite es de ~40x mensual. Aunque es alto, ahora es una métrica honesta sobre la cual optimizar.
-Dataset de Meta-modelo: He completado la generación del dataset cache/metamodel_training_data.feather. Este dataset etiqueta las señales del modelo Alpha basándose en si el movimiento futuro (horizonte de 50 barras) es suficiente para cubrir los costes de fricción (0.07% total).
-Entrenamiento del "Gatekeeper": El Meta-modelo (LightGBM) ha sido entrenado con resultados excepcionales:
-AUC OOS: 0.98 (Alta capacidad para identificar regímenes de expansión de volatilidad).
-Rentabilidad Esperada: Hemos pasado de un promedio de 289 bps por señal a 2436 bps tras aplicar el filtro del Meta-modelo (en el set de prueba).
-Modelo Guardado: El binario está en models/meta_model_v1/gatekeeper.txt.
-Pasos Pendientes (Handoff)
-He subido los scripts generate_metamodel_data.py y train_metamodel.py a la rama feat/tv-indicators-features. Los siguientes pasos para el próximo agente (o para ti en el nuevo PC) son:
+## 6. Literature grounding (from user analysis)
 
-Integrar el Meta-modelo en InstitutionalDollarStrategy.py (método _run_pipeline).
-Validar con Global Replay: Ejecutar python scripts/global_alpha_replay.py para confirmar que el PnL neto ahora es positivo bajo esta arquitectura de doble capa.
-¡Todo está sincronizado y listo en el repositorio!
+The regime-participation hypothesis is correct in principle but fails at $2M
+because signal-flipping × cost dominates. The literature (López de Prado,
+2020; CUSUM+TB in crypto) shows:
+- Dollar bars are the WEAKEST sampler in crypto empirically; CUSUM+TB beats them.
+- Next-bar labeling induces flips; triple barrier aligns target with economic decision.
+- AUC 0.52 is not zero alpha; the question is whether it covers 14bps/RT cost.
+- Economic value ≠ linear function of AUC. Measure net bps/trade, Calmar, capture ratio.
 
-Resumen de cambios:
-
-Archivos nuevos: HANDOFF.md, scripts/generate_metamodel_data.py, scripts/train_metamodel.py.
-Modelos: models/meta_model_v1/gatekeeper.txt generado.
-Git: Todo pusheado a feat/tv-indicators-features.
+The answer from the battery determines the path forward.
