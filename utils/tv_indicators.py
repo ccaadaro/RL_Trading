@@ -2,109 +2,110 @@ import numpy as np
 import pandas as pd
 import pandas_ta as ta
 
-def hma(series: pd.Series, length: int) -> pd.Series:
-    """Hull Moving Average"""
+def tv_hma(series: pd.Series, length: int) -> pd.Series:
+    """Hull Moving Average (TV Style)"""
     half_length = int(length / 2)
     sqrt_length = int(np.sqrt(length))
-    
     wma_half = ta.wma(series, length=half_length)
     wma_full = ta.wma(series, length=length)
-    
     raw_hma = 2 * wma_half - wma_full
     return ta.wma(raw_hma, length=sqrt_length)
 
-def thma(series: pd.Series, length: int) -> pd.Series:
-    """Triple Hull Moving Average"""
-    # THMA = wma(wma(src, length / 3) * 3 - wma(src, length / 2) - wma(src, length), length)
-    wma3 = ta.wma(series, length=int(length / 3))
-    wma2 = ta.wma(series, length=int(length / 2))
-    wma1 = ta.wma(series, length=length)
-    
-    raw_thma = 3 * wma3 - wma2 - wma1
-    return ta.wma(raw_thma, length=length)
-
-def ehma(series: pd.Series, length: int) -> pd.Series:
-    """Exponential Hull Moving Average"""
-    half_length = int(length / 2)
-    sqrt_length = int(np.sqrt(length))
-    
-    ema_half = ta.ema(series, length=half_length)
-    ema_full = ta.ema(series, length=length)
-    
-    raw_ehma = 2 * ema_half - ema_full
-    return ta.ema(raw_ehma, length=sqrt_length)
-
-def williams_vix_fix(df: pd.DataFrame, pd_len: int = 22, bbl_len: int = 20, mult: float = 2.0, lb_len: int = 50, ph: float = 0.85) -> pd.DataFrame:
-    """
-    Williams Vix Fix (Synthetic VIX) implementation.
-    """
+def tv_williams_vix_fix(df: pd.DataFrame, pd_len: int = 22, bbl_len: int = 20, mult: float = 2.0, lb_len: int = 50, ph: float = 0.85) -> pd.DataFrame:
+    """Williams Vix Fix (Synthetic VIX) with TV-prefix names."""
     highest_close = df['close'].rolling(pd_len).max()
     wvf = ((highest_close - df['low']) / highest_close) * 100
     
-    # Bollinger Bands on WVF
     std_wvf = wvf.rolling(bbl_len).std()
     mid_wvf = wvf.rolling(bbl_len).mean()
     upper_band = mid_wvf + mult * std_wvf
-    
-    # Range High Percentile
     range_high = wvf.rolling(lb_len).max() * ph
     
-    # Indicator is active (pánico) if wvf > upper_band or wvf > range_high
     is_panic = (wvf >= upper_band) | (wvf >= range_high)
     
     return pd.DataFrame({
-        'wvf': wvf,
-        'wvf_upper_band': upper_band,
-        'wvf_range_high': range_high,
-        'wvf_panic': is_panic.astype(float)
+        'tv_wvf_val': wvf / 100.0,
+        'tv_wvf_panic': is_panic.astype(float)
     }, index=df.index)
 
-def laguerre_filter(series: pd.Series, gamma: float) -> pd.Series:
-    """
-    Laguerre Filter (4-pole) - Recursive implementation.
-    """
-    vals = series.values
-    l0 = np.zeros_like(vals)
-    l1 = np.zeros_like(vals)
-    l2 = np.zeros_like(vals)
-    l3 = np.zeros_like(vals)
-    filt = np.zeros_like(vals)
+def tv_laguerre_bundle(series: pd.Series) -> pd.DataFrame:
+    """Compact Laguerre bundle: Fast(0.2), Mid(0.5), Slow(0.8)."""
+    l_fast = _laguerre_core(series, 0.2)
+    l_mid  = _laguerre_core(series, 0.5)
+    l_slow = _laguerre_core(series, 0.8)
     
-    for i in range(len(vals)):
-        if i == 0:
-            l0[i] = (1 - gamma) * vals[i]
-            l1[i] = -gamma * l0[i] + l0[i]
-            l2[i] = -gamma * l1[i] + l1[i]
-            l3[i] = -gamma * l2[i] + l2[i]
-        else:
-            l0[i] = (1 - gamma) * vals[i] + gamma * l0[i-1]
-            l1[i] = -gamma * l0[i] + l0[i-1] + gamma * l1[i-1]
-            l2[i] = -gamma * l1[i] + l1[i-1] + gamma * l2[i-1]
-            l3[i] = -gamma * l2[i] + l2[i-1] + gamma * l3[i-1]
-        
-        filt[i] = (l0[i] + 2*l1[i] + 2*l2[i] + l3[i]) / 6
-        
-    return pd.Series(filt, index=series.index)
-
-def koncorde_components(df: pd.DataFrame, m_len: int = 15, pvi_len: int = 90, nvi_len: int = 90) -> pd.DataFrame:
-    """
-    Koncorde components: MFI-based (osc_pos) and NVI-based (osc_neg).
-    """
-    # ta.pvi and ta.nvi expect volume
-    pvi = ta.pvi(df['close'], df['volume']).fillna(method='ffill').fillna(100)
-    nvi = ta.nvi(df['close'], df['volume']).fillna(method='ffill').fillna(100)
-    
-    pvi_ema = ta.ema(pvi, length=m_len)
-    pvi_max = pvi_ema.rolling(pvi_len).max()
-    pvi_min = pvi_ema.rolling(pvi_len).min()
-    osc_pos = (pvi - pvi_ema) * 100 / (pvi_max - pvi_min).clip(lower=1e-9)
-    
-    nvi_ema = ta.ema(nvi, length=m_len)
-    nvi_max = nvi_ema.rolling(nvi_len).max()
-    nvi_min = nvi_ema.rolling(nvi_len).min()
-    osc_neg = (nvi - nvi_ema) * 100 / (nvi_max - nvi_min).clip(lower=1e-9)
+    slope = (l_mid / l_mid.shift(1) - 1).fillna(0)
+    dispersion = pd.concat([l_fast, l_mid, l_slow], axis=1).std(axis=1) / series.clip(1e-10)
+    price_dist = (series / l_mid - 1).fillna(0)
     
     return pd.DataFrame({
-        'osc_pos': osc_pos.fillna(0),
-        'osc_neg': osc_neg.fillna(0)
+        'tv_lag_fast': l_fast,
+        'tv_lag_mid': l_mid,
+        'tv_lag_slow': l_slow,
+        'tv_lag_slope': slope,
+        'tv_lag_dispersion': dispersion,
+        'tv_price_dist_lag': price_dist
+    }, index=series.index)
+
+def _laguerre_core(series: pd.Series, gamma: float) -> pd.Series:
+    """Recursive Laguerre Filter (Causal)."""
+    vals = series.values
+    l0, l1, l2, l3 = 0.0, 0.0, 0.0, 0.0
+    out = np.zeros_like(vals)
+    for i in range(len(vals)):
+        l0_prev, l1_prev, l2_prev, l3_prev = l0, l1, l2, l3
+        l0 = (1 - gamma) * vals[i] + gamma * l0_prev
+        l1 = -gamma * l0 + l0_prev + gamma * l1_prev
+        l2 = -gamma * l1 + l1_prev + gamma * l2_prev
+        l3 = -gamma * l2 + l2_prev + gamma * l3_prev
+        out[i] = (l0 + 2*l1 + 2*l2 + l3) / 6
+    return pd.Series(out, index=series.index)
+
+def tv_koncorde_selective(df: pd.DataFrame, m_len: int = 15) -> pd.DataFrame:
+    """Selective Koncorde/TSV components: PVI/NVI spread and basic TSV."""
+    pvi = ta.pvi(df['close'], df['volume']).ffill().fillna(100)
+    nvi = ta.nvi(df['close'], df['volume']).ffill().fillna(100)
+    
+    pvi_ema = ta.ema(pvi, length=m_len)
+    nvi_ema = ta.ema(nvi, length=m_len)
+    
+    # print(f"DEBUG: pvi_ema type={type(pvi_ema)}, nvi_ema type={type(nvi_ema)}")
+    
+    # Spread as a feature
+    spread = (pvi_ema - nvi_ema) / nvi_ema.clip(1e-9)
+    
+    # TSV (Time Segmented Volume) - simplified causal version
+    tsv_raw = (df['close'].diff() * df['volume']).rolling(13).sum()
+    denom = (df['close'].rolling(13).mean() * df['volume'].rolling(13).mean()).clip(1e-9)
+    tv_tsv = tsv_raw / denom
+
+    return pd.DataFrame({
+        'tv_pvi_nvi_spread': spread.fillna(0),
+        'tv_tsv': tv_tsv.fillna(0)
+    }, index=df.index)
+
+def tv_microstructure_refined(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean microstructure features: CVD slope, aggr delta, imbalance."""
+    # Assume buy_volume, volume, aggressor_ratio are already present in df
+    buy_v = df.get('buy_volume', df.get('buy_vol', 0))
+    sell_v = (df['volume'] - buy_v).clip(0)
+    
+    cvd = (buy_v - sell_v).cumsum()
+    # Z-score of CVD over a window is more stationary than raw CVD
+    cvd_ma = cvd.rolling(100).mean()
+    cvd_std = cvd.rolling(100).std().clip(1e-9)
+    cvd_zscore = (cvd - cvd_ma) / cvd_std
+    
+    cvd_slope = (cvd.diff() / df['volume'].clip(1e-9)).rolling(10).mean()
+    
+    aggr = df.get('aggressor_ratio', 0.5)
+    aggr_delta = aggr - pd.Series(aggr).rolling(24).mean()
+    
+    imbalance = (buy_v - sell_v) / df['volume'].clip(1e-9)
+    
+    return pd.DataFrame({
+        'tv_cvd_zscore': cvd_zscore.fillna(0),
+        'tv_cvd_slope': cvd_slope.fillna(0),
+        'tv_aggr_delta': aggr_delta.fillna(0),
+        'tv_buy_sell_imbalance': imbalance.fillna(0)
     }, index=df.index)

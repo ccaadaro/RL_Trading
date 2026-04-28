@@ -186,12 +186,23 @@ class MarketDataDaemon:
                     f"L1_imb={bar['book_imbalance']:+.2f} L2_imb={self.l2_imbalance:+.2f}"
                 )
 
-            book_state = {"bid": self.best_bid, "ask": self.best_ask}
+        elif "@bookTicker" in stream:
+            # L1 Imbalance from Best Bid/Ask Qty
+            self.best_bid = float(data.get("b", 0))
+            self.best_ask = float(data.get("a", 0))
+            bid_q = float(data.get("B", 0))
+            ask_q = float(data.get("A", 0))
+            
+            total = bid_q + ask_q
+            self.book_imbalance = (bid_q - ask_q) / total if total > 0 else 0.0
+
+            book_state = {"bid": self.best_bid, "ask": self.best_ask, "l1_imb": self.book_imbalance}
             await self._publish(TOPIC_BOOK_TICKER, book_state)
 
         elif "@depth" in stream:
-            bids = data.get("b", [])
-            asks = data.get("a", [])
+            # L2 Imbalance from Top 10 levels
+            bids = data.get("bids", [])
+            asks = data.get("asks", [])
             # Calculate notional for top 10 levels
             bid_notional = sum(float(b[0]) * float(b[1]) for b in bids[:10])
             ask_notional = sum(float(a[0]) * float(a[1]) for a in asks[:10])

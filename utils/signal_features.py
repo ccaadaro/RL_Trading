@@ -33,66 +33,23 @@ from utils import tv_indicators as tv
 # Feature set definition
 # ─────────────────────────────────────────────────────────────────────────────
 
-SIGNAL_FEAT_COLS_V2 = sorted([
-    # Bollinger Bands
-    "bb_position_12_feature", "bb_position_42_feature",
-    "bb_width_12_feature",    "bb_width_42_feature",
-    # Returns
-    "close_return_feature", "log_return_feature",
-    "trend_return_180_feature", "trend_return_540_feature",
-    # EMA ratio  (EMA/close - 1)
-    "ema_ratio_3_feature",  "ema_ratio_6_feature",  "ema_ratio_12_feature",
-    "ema_ratio_24_feature", "ema_ratio_42_feature", "ema_ratio_90_feature",
-    "ema_ratio_180_feature",
-    # ETH cross-asset
-    "eth_btc_ratio_feature", "eth_btc_trend_feature", "eth_btc_zscore_feature",
-    # Fibonacci
-    "fib_dist_618_42_feature", "fib_dist_618_180_feature",
-    "fib_position_42_feature", "fib_position_180_feature",
-    # Funding rate
-    "funding_rate_feature", "funding_rate_ma_feature", "funding_rate_zscore_feature",
-    # Range / wick
-    "intraday_range_feature", "range_feature",
-    "wick_lower_feature",     "wick_upper_feature",
-    # MA bias  (close/SMA - 1)
-    "ma_bias_3_feature",   "ma_bias_6_feature",   "ma_bias_12_feature",
-    "ma_bias_24_feature",  "ma_bias_42_feature",  "ma_bias_90_feature",
-    "ma_bias_180_feature", "ma_bias_540_feature",
-    # Volatility
-    "realized_vol_1h_feature",
-    "volatility_3_feature",   "volatility_6_feature",  "volatility_12_feature",
-    "volatility_24_feature",  "volatility_42_feature", "volatility_90_feature",
-    "volatility_180_feature",
-    # RSI  (ta.rsi / 100 → [0, 1])
-    "rsi_3_feature",  "rsi_6_feature",  "rsi_12_feature",
-    "rsi_24_feature", "rsi_42_feature", "rsi_90_feature", "rsi_180_feature",
-    # Volume z-score
-    "volume_zscore_3_feature",   "volume_zscore_6_feature",
-    "volume_zscore_12_feature",  "volume_zscore_24_feature",
-    "volume_zscore_42_feature",  "volume_zscore_90_feature",
-    "volume_zscore_180_feature",
-    # Order Flow
-    "cvd_4h_sum_trade_feature",
-    "aggressor_ratio_4h_mean_trade_feature",
-    "whale_trades_4h_sum_trade_feature",
-    "large_trades_4h_sum_trade_feature",
-    "max_trade_usd_4h_max_trade_feature",
-    "vwap_skew_4h_mean_trade_feature",
-    "whale_intensity_4h_mean_trade_feature",
-    "large_intensity_4h_mean_trade_feature",
-    "cvd_4h_zscore_trade_feature",
-    "aggressor_vs_baseline_trade_feature",
-    # %R Trend Exhaustion (TradingView Translation)
+# 1. Institutional Base (14 features)
+FEATURE_SET_INSTITUTIONAL = sorted([
+    "cvd_4h_sum_trade_feature", "aggressor_ratio_4h_mean_trade_feature",
+    "whale_trades_4h_sum_trade_feature", "large_trades_4h_sum_trade_feature",
+    "max_trade_usd_4h_max_trade_feature", "vwap_skew_4h_mean_trade_feature",
+    "whale_intensity_4h_mean_trade_feature", "l2_imbalance_feature", 
+    "liq_vola_feature", "cross_exchange_premium_feature",
+    "tv_cvd_zscore_feature", "tv_cvd_slope_feature", 
+    "tv_aggr_delta_feature", "tv_buy_sell_imbalance_feature"
+])
+
+# 2. Elite Set (Institutional + WVF + %R = 21 features)
+SIGNAL_FEAT_COLS_V2 = sorted(FEATURE_SET_INSTITUTIONAL + [
+    "tv_wvf_panic_feature", "tv_wvf_val_feature",
     "pr_exhaust_ob_feature", "pr_exhaust_os_feature",
     "pr_exhaust_ob_reversal_feature", "pr_exhaust_os_reversal_feature",
-    "pr_spread_feature",
-    # TV Indicators Block
-    "hull_hma_55_feature", "hull_hma_slope_feature", "hull_hma_dist_feature",
-    "wvf_panic_feature", "wvf_val_feature",
-    "laguerre_trend_feature", "laguerre_dispersion_feature",
-    "koncorde_osc_pos_feature", "koncorde_osc_neg_feature",
-    # Institutional placeholders
-    "l2_imbalance_feature", "liq_vola_feature", "cross_exchange_premium_feature",
+    "pr_spread_feature"
 ])
 
 
@@ -117,6 +74,8 @@ def compute_ohlcv_features(df: pd.DataFrame) -> pd.DataFrame:
     high   = df["high"]
     low    = df["low"]
     open_  = df["open"]
+    if "volume" not in df.columns:
+        df["volume"] = df["buy_vol"] + df["sell_vol"]
     volume = df["volume"]
     log_close = np.log(close.clip(1e-10))
     log_ret   = log_close.diff(1).fillna(0)
@@ -152,29 +111,38 @@ def compute_ohlcv_features(df: pd.DataFrame) -> pd.DataFrame:
     df["pr_exhaust_os_reversal_feature"] = ((~os) & os.shift(1)).astype(float).fillna(0)
     df["pr_spread_feature"] = (pr_fast - pr_slow) / 100.0
 
-    # ── TV Indicators ──
-    # Hull Suite (Swing length 55)
-    hma55 = tv.hma(close, 55)
-    df["hull_hma_55_feature"] = (close / hma55 - 1).fillna(0) # distance as feature
-    df["hull_hma_slope_feature"] = (hma55 / hma55.shift(1) - 1).fillna(0)
-    df["hull_hma_dist_feature"] = (close - hma55) / close.clip(1e-10)
+    # ── Refined TV Indicators ──
+    # 1. Hull Suite
+    hma55 = tv.tv_hma(close, 55)
+    df["tv_hull_hma_55_feature"] = (close / hma55 - 1).fillna(0)
+    df["tv_hull_hma_slope_feature"] = (hma55 / hma55.shift(1) - 1).fillna(0)
+    df["tv_hull_hma_dist_feature"] = (close - hma55) / close.clip(1e-10)
 
-    # Williams Vix Fix
-    wvf_df = tv.williams_vix_fix(df)
-    df["wvf_panic_feature"] = wvf_df["wvf_panic"]
-    df["wvf_val_feature"] = wvf_df["wvf"] / 100.0 # Normalized
+    # 2. Williams Vix Fix
+    wvf_df = tv.tv_williams_vix_fix(df)
+    df["tv_wvf_panic_feature"] = wvf_df["tv_wvf_panic"]
+    df["tv_wvf_val_feature"] = wvf_df["tv_wvf_val"]
 
-    # Laguerre Multi-Filter (Simplified to 3 bands)
-    lag_fast = tv.laguerre_filter(close, 0.2)
-    lag_mid  = tv.laguerre_filter(close, 0.5)
-    lag_slow = tv.laguerre_filter(close, 0.8)
-    df["laguerre_trend_feature"] = (lag_fast / lag_slow - 1).fillna(0)
-    df["laguerre_dispersion_feature"] = pd.concat([lag_fast, lag_mid, lag_slow], axis=1).std(axis=1) / close.clip(1e-10)
+    # 3. Laguerre Bundle
+    lag_df = tv.tv_laguerre_bundle(close)
+    df["tv_lag_fast_feature"] = lag_df["tv_lag_fast"] / close.clip(1e-10)
+    df["tv_lag_mid_feature"]  = lag_df["tv_lag_mid"] / close.clip(1e-10)
+    df["tv_lag_slow_feature"] = lag_df["tv_lag_slow"] / close.clip(1e-10)
+    df["tv_lag_slope_feature"] = lag_df["tv_lag_slope"]
+    df["tv_lag_dispersion_feature"] = lag_df["tv_lag_dispersion"]
+    df["tv_price_dist_lag_feature"] = lag_df["tv_price_dist_lag"]
 
-    # Koncorde Components
-    konk_df = tv.koncorde_components(df)
-    df["koncorde_osc_pos_feature"] = konk_df["osc_pos"] / 100.0
-    df["koncorde_osc_neg_feature"] = konk_df["osc_neg"] / 100.0
+    # 4. Selective Koncorde / TSV
+    konk_df = tv.tv_koncorde_selective(df)
+    df["tv_pvi_nvi_spread_feature"] = konk_df["tv_pvi_nvi_spread"]
+    df["tv_tsv_feature"] = konk_df["tv_tsv"]
+
+    # 5. Refined Microstructure
+    micro_df = tv.tv_microstructure_refined(df)
+    df["tv_cvd_zscore_feature"] = micro_df["tv_cvd_zscore"]
+    df["tv_cvd_slope_feature"] = micro_df["tv_cvd_slope"]
+    df["tv_aggr_delta_feature"] = micro_df["tv_aggr_delta"]
+    df["tv_buy_sell_imbalance_feature"] = micro_df["tv_buy_sell_imbalance"]
 
     # ── Institutional Data Placeholders (to be populated by daemon) ──
     # If not present in incoming df, we init to 0.0
