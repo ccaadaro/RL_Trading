@@ -94,7 +94,7 @@ def run_replay(model_path: str, data_path: str, meta_model_path: Optional[str] =
         meta_probs = meta_model.predict(meta_feats_df)
         df["meta_prob"] = meta_probs
         # Institutional Selective Gatekeeper
-        df["meta_pass"] = (df["meta_prob"] >= 0.65).astype(int)
+        df["meta_pass"] = (df["meta_prob"] >= 0.60).astype(int)
     else:
         df["meta_pass"] = 1.0
     
@@ -103,9 +103,9 @@ def run_replay(model_path: str, data_path: str, meta_model_path: Optional[str] =
     target_pos = np.zeros(n)
     curr_t = 0.0
     
-    min_entry = 0.65     # High conviction entry
-    exit_threshold = 0.50 # Neutral exit
-    min_hold_bars = 150   # Institutional hold (~9 hours)
+    min_entry = 0.55     
+    exit_threshold = 0.50 
+    min_hold_bars = 50    
     bars_since_entry = 0
     
     print(f"Executing replay for {Path(model_path).name} on {n} samples...")

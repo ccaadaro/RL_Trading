@@ -38,63 +38,78 @@ def train_metamodel(data_path, output_model_path):
     
     # Encode 'regime' if it was a string, but we use 'hmm_state' (int)
     
-    X = df_signals[features]
-    y = df_signals["y_meta"]
+    # 1. PURGED TIME-SERIES SPLIT WITH EMBARGO
+    horizon = 50
+    embargo = 100
+    split_idx = int(len(df_signals) * 0.75)
     
-    # Time-based split (No shuffling for time-series)
-    split_idx = int(len(X) * 0.8)
-    X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
-    y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+    train_df = df_signals.iloc[:split_idx - horizon].copy()
+    test_df  = df_signals.iloc[split_idx + embargo:].copy()
+    
+    # 2. RECENCY SAMPLE WEIGHTING (Exponential half-life decay)
+    # 6-month half-life on a 2-year dataset = 4 half-lives. 
+    # Start weight = 2^-4 (0.0625), End weight = 2^0 (1.0).
+    n_train = len(train_df)
+    time_indices = np.linspace(0, 4, n_train)
+    weights = 2**(time_indices - 4)
+    
+    print(f"Training on {len(train_df)} samples (Half-life: 6m), testing on {len(test_df)} samples (purged)...")
+    
+    X_train, y_train = train_df[features], train_df["y_meta"]
+    X_test,  y_test  = test_df[features],  test_df["y_meta"]
     
     print(f"Training on {len(X_train)} samples, testing on {len(X_test)} samples...")
     
-    # LightGBM Parameters
+    # LightGBM Parameters (Refined for Meta-models)
     params = {
         "objective": "binary",
         "metric": "auc",
         "boosting_type": "gbdt",
-        "num_leaves": 31,
-        "learning_rate": 0.05,
-        "feature_fraction": 0.8,
-        "bagging_fraction": 0.8,
+        "num_leaves": 15, 
+        "max_depth": 4,   
+        "learning_rate": 0.03,
+        "feature_fraction": 0.7,
+        "bagging_fraction": 0.7,
         "bagging_freq": 5,
         "verbose": -1,
-        "is_unbalance": True, # To handle potential label imbalance
+        "is_unbalance": True,
     }
     
-    train_data = lgb.Dataset(X_train, label=y_train, categorical_feature=cat_features)
-    test_data = lgb.Dataset(X_test, label=y_test, categorical_feature=cat_features, reference=train_data)
+    train_set = lgb.Dataset(X_train, label=y_train, weight=weights, categorical_feature=cat_features)
+    test_set  = lgb.Dataset(X_test, label=y_test, categorical_feature=cat_features, reference=train_set)
     
     model = lgb.train(
         params,
-        train_data,
-        valid_sets=[train_data, test_data],
+        train_set,
+        valid_sets=[train_set, test_set],
         num_boost_round=1000,
         callbacks=[
-            lgb.early_stopping(stopping_rounds=50),
+            lgb.early_stopping(stopping_rounds=100), 
             lgb.log_evaluation(period=50)
         ]
     )
     
-    # Evaluation
+    # 3. EVALUATION
     y_pred_prob = model.predict(X_test)
-    y_pred = (y_pred_prob > 0.60).astype(int) # Using the user's recommended threshold
+    y_pred = (y_pred_prob > 0.60).astype(int)
     
-    print("\n=== Meta-model Evaluation (OOS) ===")
+    print("\n=== Meta-model Evaluation (Hardened OOS) ===")
     print(f"AUC: {roc_auc_score(y_test, y_pred_prob):.4f}")
     print(f"Precision (Tradeability): {precision_score(y_test, y_pred):.4f}")
-    print(classification_report(y_test, y_pred))
+    
+    # Feature Importance Audit
+    importances = pd.Series(model.feature_importance(importance_type='gain'), index=features).sort_values(ascending=False)
+    print("\nFeature Importance (Gain):")
+    print(importances.head(10))
     
     # Key Metric: Expected Net Bps per Trade
-    # We map the predictions back to the original df_signals to see net profit
-    df_test = df_signals.iloc[split_idx:].copy()
-    df_test["meta_pred"] = y_pred
+    test_df["meta_pred"] = y_pred
     
-    net_bps_all = df_test["forward_ret_bps"] - df_test["expected_cost_bps"]
-    net_bps_filtered = df_test[df_test["meta_pred"] == 1]["forward_ret_bps"] - df_test[df_test["meta_pred"] == 1]["expected_cost_bps"]
+    net_bps_all = test_df["forward_ret_bps"] - test_df["expected_cost_bps"]
+    net_bps_filtered = test_df[test_df["meta_pred"] == 1]["forward_ret_bps"] - test_df[test_df["meta_pred"] == 1]["expected_cost_bps"]
     
-    print(f"Avg Net Bps (All Alpha Signals): {net_bps_all.mean():.2f}")
-    print(f"Avg Net Bps (Meta-Filtered):    {net_bps_filtered.mean():.2f}")
+    print(f"\nAvg Net Bps (All Alpha Signals in Test): {net_bps_all.mean():.2f}")
+    print(f"Avg Net Bps (Meta-Filtered in Test):    {net_bps_filtered.mean():.2f}")
     
     # Save model
     model_dir = Path(output_model_path).parent

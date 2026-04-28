@@ -91,11 +91,12 @@ class _ZmqListener(threading.Thread):
     a shared signal dict protected by a threading.Lock.
     """
 
-    def __init__(self, alpha_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
+    def __init__(self, alpha_model, meta_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
                  signal_store: dict, lock: threading.Lock,
                  zmq_addr: str = ZMQ_DAEMON_ADDR):
         super().__init__(daemon=True, name="ZmqDollarBarListener")
         self._alpha         = alpha_model
+        self._meta          = meta_model
         self._turb          = turbulence_engine
         self._hmm           = hmm_model
         self._hmm_htf       = hmm_model_htf   # 1-hour timeframe HMM
@@ -143,6 +144,18 @@ class _ZmqListener(threading.Thread):
         # Dashboard diagnostics: fire-and-forget queue (thread-safe)
         self._diag_queue: queue.SimpleQueue = queue.SimpleQueue()
 
+        # Institutional Stats Monitoring (Shadow-Live)
+        self._stats = {
+            "n_inferences": 0,
+            "alpha_probs": [],
+            "meta_probs": [],
+            "spreads": [],
+            "costs": [],
+            "veto_count": 0,
+            "entry_count": 0,
+            "reasons": {}
+        }
+
 
     def set_virtual_position(self, pos: float):
         """BUG #19 FIX: Thread-safe update of current position."""
@@ -154,6 +167,30 @@ class _ZmqListener(threading.Thread):
         if self._executor:
             # BUG-Shutdown FIX: non-waiting shutdown
             self._executor.shutdown(wait=False)
+
+    def _log_summary_stats(self):
+        """Institutional Summary Log (Shadow-Live Audit)"""
+        s = self._stats
+        if s["n_inferences"] == 0: return
+        
+        alpha_arr = np.array(s["alpha_probs"])
+        meta_arr  = np.array(s["meta_probs"])
+        
+        logger.info(
+            "\n" + "="*60 + "\n"
+            f"[SHADOW-LIVE SUMMARY] Bars: {s['n_inferences']}\n"
+            f"Alpha Prob: Mean={np.mean(alpha_arr):.3f} | P10={np.percentile(alpha_arr, 10):.3f} | P50={np.median(alpha_arr):.3f} | P90={np.percentile(alpha_arr, 90):.3f}\n"
+            f"Meta Prob:  Mean={np.mean(meta_arr):.3f}  | P10={np.percentile(meta_arr, 10):.3f}  | P50={np.median(meta_arr):.3f}  | P90={np.percentile(meta_arr, 90):.3f}\n"
+            f"Veto Rate:  {(s['veto_count']/s['n_inferences'])*100:.1f}% | Entry Rate: {(s['entry_count']/s['n_inferences'])*100:.1f}%\n"
+            f"Spreads:    Mean={np.mean(s['spreads']):.1f} bps | Costs: Mean={np.mean(s['costs']):.1f} bps\n"
+            f"Veto Reasons: {s['reasons']}\n"
+            + "="*60
+        )
+        # Clear rolling window to avoid memory leak over days, but keep counts
+        s["alpha_probs"] = []
+        s["meta_probs"] = []
+        s["spreads"] = []
+        s["costs"] = []
 
     def _run_pipeline(self):
         """Converts bar buffer → features → alpha → regime → sizing."""
@@ -225,9 +262,19 @@ class _ZmqListener(threading.Thread):
             except Exception as e:
                 logger.warning("Combined Alpha inference failed: %s", e, exc_info=True)
                 return
-                # BUG #22 FIX: exc_info=True
-                logger.warning("LightGBM predict failed: %s", e, exc_info=True)
-                return
+
+            # Meta-model "Gatekeeper" Features (Context-Aware)
+            try:
+                # 1. Feature Prep
+                alpha_probs = df["oof_pred"]
+                df["alpha_prob_smooth"] = alpha_probs.ewm(span=10).mean()
+                df["alpha_prob_zscore"] = (alpha_probs - alpha_probs.rolling(200).mean()) / alpha_probs.rolling(200).std()
+                df["alpha_prob_percentile"] = alpha_probs.rolling(1000).rank(pct=True)
+                df["alpha_signal_persistence"] = (alpha_probs > 0.55).astype(int).rolling(20).sum()
+                
+                # We'll compute turbulence percentile later after full turb computation
+            except Exception as e:
+                logger.warning("Meta-feature prep failed: %s", e)
 
             # Turbulence (rolling adaptive threshold)
             risk_vec       = ["log_return_feature", "volatility_24_feature", "intraday_range_feature"]
@@ -368,6 +415,88 @@ class _ZmqListener(threading.Thread):
 
             confidence_scale = min(1.0, (2.0 * abs(last_oof - 0.5)) / 0.10)
             raw_target_pos = float(raw_target_pos) * confidence_scale
+
+            # Kill-Switch 4: Meta-Model Gatekeeper (Tradeability)
+            meta_prob = 0.0
+            if self._meta:
+                try:
+                    # Capture latest book data for spread calculation
+                    with self._lock:
+                        l_sig = dict(self._signal)
+                    
+                    # Calculate final meta-features
+                    df["turbulence_percentile"] = df["turbulence_score"].rolling(2000).rank(pct=True)
+                    
+                    # Costs
+                    spread_bps = 0.0
+                    mid = l_sig.get("mid", 0.0)
+                    if l_sig.get("best_ask") and l_sig.get("best_bid") and mid > 0:
+                         spread_bps = (l_sig["best_ask"] - l_sig["best_bid"]) / mid * 10000
+                    
+                    # If live book ticker not in sig yet, fallback to 2 bps spread estimate
+                    spread_bps = spread_bps if spread_bps > 0 else 2.0
+                    expected_cost_bps = 5 + spread_bps + 2 # 5 fee + spread + 2 slippage
+                    
+                    # Get canonical HMM state ID (0, 1, 2)
+                    hmm_state_id = self._hmm.predict_current_state(df.tail(50))
+                    
+                    # Map names to match meta-model training script
+                    X_meta = pd.DataFrame([{
+                        "alpha_prob":              float(last_oof), # Raw probability
+                        "alpha_prob_smooth":       float(df["alpha_prob_smooth"].iloc[-1]),
+                        "alpha_prob_zscore":       float(df["alpha_prob_zscore"].iloc[-1]),
+                        "alpha_prob_percentile":   float(df["alpha_prob_percentile"].iloc[-1]),
+                        "alpha_signal_persistence": float(df["alpha_signal_persistence"].iloc[-1]),
+                        "turbulence_score":        float(df["turbulence_score"].iloc[-1]),
+                        "turbulence_percentile":   float(df["turbulence_percentile"].iloc[-1]),
+                        "hmm_state":               int(hmm_state_id),
+                        "volatility_24_feature":   float(df["volatility_24_feature"].iloc[-1]),
+                        "aggressor_ratio":         float(df["aggressor_ratio"].iloc[-1]) if "aggressor_ratio" in df.columns else 0.0,
+                        "l2_imbalance_feature":    float(X["l2_imbalance_feature"].iloc[-1]) if "l2_imbalance_feature" in X.columns else 0.0,
+                        "spread_bps":              float(spread_bps),
+                        "expected_cost_bps":       float(expected_cost_bps)
+                    }])
+                    
+                    meta_prob = self._meta.predict(X_meta)[0]
+                    
+                    # LOGGING EXHAUSTIVO (Per Inerence)
+                    veto_reason = "none"
+                    allow_trade = True
+                    
+                    if meta_prob < 0.60:
+                        raw_target_pos = 0.0
+                        allow_trade = False
+                        veto_reason = "low_meta_conviction"
+                        if expected_cost_bps > 25: veto_reason = "prohibitive_costs"
+                        elif spread_bps > 15: veto_reason = "toxic_spread"
+                        elif float(last_oof) < 0.55: veto_reason = "alpha_weakness"
+                    
+                    # Update Stats
+                    self._stats["n_inferences"] += 1
+                    self._stats["alpha_probs"].append(float(last_oof))
+                    self._stats["meta_probs"].append(float(meta_prob))
+                    self._stats["spreads"].append(float(spread_bps))
+                    self._stats["costs"].append(float(expected_cost_bps))
+                    if not allow_trade:
+                        self._stats["veto_count"] += 1
+                        self._stats["reasons"][veto_reason] = self._stats["reasons"].get(veto_reason, 0) + 1
+                    
+                    # Log Decisivo
+                    logger.info(
+                        "[SHADOW-LIVE] Inf #%d | Alpha=%.3f (Thr=0.55) | Meta=%.3f (Thr=0.60) | "
+                        "Allow=%s | VetoReason=%s | Regime=%s | Turb=%.2f | "
+                        "Spread=%.1f bps | Cost=%.1f bps | Pos: %.2f -> %.2f",
+                        self._stats["n_inferences"], float(last_oof), float(meta_prob),
+                        allow_trade, veto_reason, current_regime, float(last["turbulence_score"]),
+                        spread_bps, expected_cost_bps, self._current_target_pos, raw_target_pos
+                    )
+                    
+                    # Summary Every 100 bars
+                    if self._stats["n_inferences"] % 100 == 0:
+                        self._log_summary_stats()
+
+                except Exception as e:
+                    logger.warning("Meta-model inference failed: %s", e)
 
             # T2.5: Multi-TF regime filter — 1h aggregated HMM provides market context.
             # Acts as a soft multiplier on the LTF Kelly, not a hard gate.
@@ -584,6 +713,8 @@ class _ZmqListener(threading.Thread):
                     "regime":       str(last["hmm_semantic_regime"]),
                     "turbulence":   float(last["turbulence_score"]),
                     "oof_pred":     float(last["oof_pred"]),
+                    "meta_prob":    float(meta_prob),
+                    "veto_reason":  str(veto_reason),
                     "close":        float(last["close"]),
                     "ts":           time.time(),
                     "n_bars":       len(buffer_copy),
@@ -629,7 +760,11 @@ class _ZmqListener(threading.Thread):
                     "confidence_scale":     _sf(confidence_scale, 0.0),
                     "htf_regime":           htf_regime,
                     "htf_multiplier":       _sf(htf_mult, 0.5),
+                    "htf_multiplier":       _sf(htf_mult, 0.5),
                     "book_imbalance":       _sf(_bar_imbalance, 0.0),
+                    "meta_prob":            _sf(meta_prob, 0.0),
+                    "veto_reason":          str(veto_reason),
+                    "expected_cost_bps":    _sf(expected_cost_bps, 0.0),
                 })
             except Exception:
                 pass  # Never let diagnostics crash the pipeline
@@ -703,10 +838,10 @@ class _ZmqListener(threading.Thread):
 
                 elif topic == TOPIC_BOOK_TICKER:
                     with self._lock:
-                        self._signal["best_bid"]       = payload.get("best_bid")
-                        self._signal["best_ask"]       = payload.get("best_ask")
-                        self._signal["mid"]            = payload.get("mid")
-                        self._signal["book_imbalance"] = payload.get("book_imbalance", 0.0)
+                        self._signal["best_bid"]       = payload.get("bid")
+                        self._signal["best_ask"]       = payload.get("ask")
+                        self._signal["mid"]            = (payload.get("bid", 0) + payload.get("ask", 0)) / 2 if payload.get("bid") else 0
+                        self._signal["book_imbalance"] = payload.get("l1_imb", 0.0)
 
             except zmq.Again:
                 pass  # Timeout — just loop
@@ -829,24 +964,26 @@ class InstitutionalDollarStrategy(IStrategy):
 
 
     def bot_start(self, **kwargs) -> None:
-        logger.info("[Phase 8] Booting Institutional Dollar Strategy (ZMQ subscriber mode)...")
+        logger.info("[BASELINE-V1] Booting Institutional Hardened Candidate (Shadow-Live mode)...")
 
-        # 1. Load Alpha Oracles (Fast + Slow)
-        model_path = _RL_DIR / "models" / "dollar_alpha_v1" / "latest_model.txt"
-        slow_path  = _RL_DIR / "models" / "signal_lgbm_v2_ensemble.pkl"
+        # 1. Load Frozen Assets from Deployment Path
+        deploy_path = _RL_DIR / "deployments" / "baseline_hardened_v1"
+        model_path = deploy_path / "alpha_model.txt"
+        meta_path  = deploy_path / "gatekeeper.txt"
         
         self._alpha_model = None
-        self._alpha_slow_model = None
-        
         if model_path.exists():
             self._alpha_model = lgb.Booster(model_file=str(model_path))
-            logger.info("Fast Alpha loaded: %s", model_path)
-        
-        if slow_path.exists():
-            import pickle
-            with open(slow_path, "rb") as f:
-                self._alpha_slow_model = pickle.load(f)
-            logger.info("Slow Alpha (Stacked) loaded: %s", slow_path)
+            logger.info("[BASELINE-V1] Alpha Model loaded from deployment: %s", model_path)
+        else:
+            logger.error("[BASELINE-V1] CRITICAL: Alpha model missing in %s", model_path)
+
+        self._meta_model = None
+        if meta_path.exists():
+            self._meta_model = lgb.Booster(model_file=str(meta_path))
+            logger.info("[BASELINE-V1] Meta-Gatekeeper loaded from deployment: %s", meta_path)
+        else:
+            logger.error("[BASELINE-V1] CRITICAL: Meta-model missing in %s", meta_path)
 
         # 2. Instantiate Risk Engines
         self._turbulence = MahalanobisTurbulence(window=1000, step=250)
@@ -857,7 +994,8 @@ class InstitutionalDollarStrategy(IStrategy):
         # 3. Start background ZMQ listener thread
         self._zmq_listener = _ZmqListener(
             alpha_model=self._alpha_model,
-            alpha_slow_model=self._alpha_slow_model,
+            meta_model=self._meta_model,
+            alpha_slow_model=None, # Baseline V1 uses model_a only
             turbulence_engine=self._turbulence,
             hmm_model=self._hmm,
             hmm_model_htf=self._hmm_htf,
@@ -997,6 +1135,31 @@ class InstitutionalDollarStrategy(IStrategy):
         dataframe["exit_long"] = 0
         dataframe.loc[dataframe["target_pos"] <= 0.0, "exit_long"] = 1
         return dataframe
+
+    def custom_exit(self, pair: str, trade, current_time, current_rate: float,
+                    current_profit: float, **kwargs) -> Optional[str]:
+        """
+        Institutional Exit Audit: distinguishes between Alpha reversal and Meta-veto.
+        """
+        with self._signal_lock:
+            targ        = self._latest_signal.get("target_pos", 0.0)
+            veto_reason = self._latest_signal.get("veto_reason", "none")
+            alpha_prob  = self._latest_signal.get("oof_pred", 0.5)
+            meta_prob   = self._latest_signal.get("meta_prob", 0.0)
+
+        if targ <= 0:
+            if veto_reason != "none":
+                logger.info("[EXIT-AUDIT] Meta-Veto exit: %s (meta_prob=%.3f)", veto_reason, meta_prob)
+                return f"meta_veto_{veto_reason}"
+            
+            if alpha_prob < 0.50:
+                logger.info("[EXIT-AUDIT] Alpha reversal exit (prob=%.3f)", alpha_prob)
+                return "alpha_reversal"
+            
+            # Fallback
+            return "pipeline_exit_zero"
+        
+        return None
 
     def custom_stake_amount(self, pair: str, current_time, current_rate: float,
                             proposed_stake: float, min_stake: Optional[float],
