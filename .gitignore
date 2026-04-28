@@ -62,7 +62,7 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
+65: instance/
 .webassets-cache
 
 # Scrapy stuff:
@@ -203,3 +203,6 @@ key.txt
 # IDE
 .vscode/
 .claude/
+
+# Exceptions for source HTML
+!services/dashboard.html
