@@ -124,6 +124,22 @@ class HMMRegimeModel:
             print(f"[HMM] Model fitted. Score: {best_score:.2f} | States Vol Map: {self.state_map}")
         return self
 
+    def predict_current_state(self, df_tail: pd.DataFrame) -> int:
+        """
+        Infers the canonical state ID for the latest observation.
+        :param df_tail: Last N bars.
+        """
+        if self.model is None:
+            return -1
+            
+        X = df_tail[self.features].fillna(0).values
+        try:
+            hidden_states = self.model.predict(X)
+            last_orig_state = hidden_states[-1]
+            return self.state_map.get(last_orig_state, -1)
+        except Exception:
+            return -1
+
     def predict_current(self, df_tail: pd.DataFrame) -> str:
         """
         Infers the regime for the latest observation using online sequence inference.
