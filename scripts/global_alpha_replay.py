@@ -114,13 +114,23 @@ def run_replay(model_path: str, data_path: str, threshold: float = 0.01):
     trade_returns = df[df["costs"] > 0]["strategy_return"]
     top_3_pct = trade_returns.nlargest(3).sum() / trade_returns.sum() if trade_returns.sum() > 0 else 0
 
+    # Correct turnover calculation using actual time elapsed
+    if 'date' in df.columns:
+        total_days = (df['date'].max() - df['date'].min()).total_seconds() / (24 * 3600)
+    else:
+        # Fallback to bar count estimation if date is missing (less accurate for dollar bars)
+        total_days = n / 17.6 / 24  # Assuming avg 17.6 bars per hour
+    
+    total_months = total_days / 30.44
+    monthly_turnover = trade_diff.sum() / total_months
+    
     print("\n=== Global Alpha Replay Results ===")
     print(f"Total Strategy Return (Net): {total_ret:.2%}")
     print(f"Total Market Return:         {market_ret:.2%}")
     print(f"Annualized Sharpe (Net):     {sharpe:.2f}")
     print(f"Max Drawdown:                {(1 - df['cum_return'] / df['cum_return'].cummax()).max():.2%}")
     print(f"Total Turnover:              {trade_diff.sum():.2f}")
-    print(f"Monthly Turnover (Est):      {trade_diff.sum() / (n / (30*24)):.2f}x")
+    print(f"Monthly Turnover (Est):      {monthly_turnover:.2f}x")
     print(f"Profit Concentration (Top 3): {top_3_pct:.2%}")
     
     import matplotlib.pyplot as plt
