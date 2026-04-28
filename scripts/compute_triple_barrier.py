@@ -37,7 +37,8 @@ def get_daily_volatility(prices: pd.Series, window: int = 288) -> pd.Series:
     rather than per-bar micro noise.
     """
     log_ret = np.log(prices).diff()
-    daily_vol = log_ret.rolling(window, min_periods=50).std() * np.sqrt(window)
+    min_periods = min(50, window)
+    daily_vol = log_ret.rolling(window, min_periods=min_periods).std() * np.sqrt(window)
     return daily_vol
 
 def cusum_filter(prices: pd.Series, threshold: pd.Series) -> pd.Index:

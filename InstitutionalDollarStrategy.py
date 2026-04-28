@@ -79,8 +79,8 @@ ZMQ_DAEMON_ADDR   = "tcp://127.0.0.1:5555"
 ZMQ_DIAG_ADDR     = "tcp://127.0.0.1:5556"   # Dashboard diagnostics PUB
 
 # Minimum Dollar Bars in the rolling buffer before running inference
-# Lowered to 20: enough for RSI/vol warmup while keeping cold-start fast.
-MIN_BARS_FOR_INFERENCE = 20
+# Raised to 50 to satisfy min_periods in volatility calculations.
+MIN_BARS_FOR_INFERENCE = 50
 
 
 class _ZmqListener(threading.Thread):
@@ -91,13 +91,15 @@ class _ZmqListener(threading.Thread):
     a shared signal dict protected by a threading.Lock.
     """
 
-    def __init__(self, alpha_model, meta_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
+    def __init__(self, alpha_model, meta_model, alpha_slow_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
                  signal_store: dict, lock: threading.Lock,
                  zmq_addr: str = ZMQ_DAEMON_ADDR):
         super().__init__(daemon=True, name="ZmqDollarBarListener")
         self._alpha         = alpha_model
         self._meta          = meta_model
+        self._alpha_slow    = alpha_slow_model
         self._turb          = turbulence_engine
+        self._WINDOW_DAILY  = 1000  # Default daily window for $2M Dollar Bars
         self._hmm           = hmm_model
         self._hmm_htf       = hmm_model_htf   # 1-hour timeframe HMM
         self._sizer         = sizer
