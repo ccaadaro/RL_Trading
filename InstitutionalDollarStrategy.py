@@ -91,11 +91,13 @@ class _ZmqListener(threading.Thread):
     a shared signal dict protected by a threading.Lock.
     """
 
-    def __init__(self, alpha_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
+    def __init__(self, alpha_model, alpha_slow_model, meta_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
                  signal_store: dict, lock: threading.Lock,
                  zmq_addr: str = ZMQ_DAEMON_ADDR):
         super().__init__(daemon=True, name="ZmqDollarBarListener")
         self._alpha         = alpha_model
+        self._alpha_slow    = alpha_slow_model
+        self._meta          = meta_model
         self._turb          = turbulence_engine
         self._hmm           = hmm_model
         self._hmm_htf       = hmm_model_htf   # 1-hour timeframe HMM
@@ -532,7 +534,7 @@ class _ZmqListener(threading.Thread):
                     and raw_target_pos < 0.10):
                 raw_target_pos = 0.10
                 _bypass_applied = True
-                self._bypass_hold_bars = self._HYSTERESIS_TO_BULL  # sustain for N bars
+                self._bypass_hold_bars = self._HYSTERESIS_TO_BULL  # sustain for n bars
                 logger.info(
                     "[ALPHA BYPASS] Pending %s + alpha=%.3f + turb=%.3f < thr=%.3f + imb=%+.3f → floor 10%% (hold=%d bars)",
                     self._pending_regime, float(last["oof_pred"]),
@@ -551,6 +553,76 @@ class _ZmqListener(threading.Thread):
             # 3. Exit: Permitted if reduction >= 5% OR target is zero
             # 4. Mandatory: Must be a CUSUM event
             
+            # 6.5 Meta-Gate Validation (Gatekeeper Phase 8)
+            meta_prob = 1.0
+            veto_reason = "none"
+            expected_cost = 0.0
+            
+            if self._meta:
+                try:
+                    # a. Compute Meta-Features
+                    # alpha_prob is oof_pred
+                    df["alpha_prob_smooth"] = df["oof_pred"].ewm(span=5).mean()
+                    _roll = df["oof_pred"].rolling(window=24)
+                    df["alpha_prob_zscore"] = (df["oof_pred"] - _roll.mean()) / (_roll.std().replace(0, 1e-6))
+                    df["alpha_prob_percentile"] = _roll.rank(pct=True)
+                    
+                    # alpha_signal_persistence: consecutive bars alpha > 0.5
+                    _high = (df["oof_pred"] > 0.5).astype(int)
+                    df["alpha_signal_persistence"] = _high.groupby((_high != _high.shift()).cumsum()).cumsum()
+                    
+                    # expected_cost_bps (Almgren-Chriss simple)
+                    from utils.slippage import compute_market_impact_bps
+                    # Assume $5000 order size for institutional validation
+                    _adv = (df["close"] * df["volume"]).rolling(24).mean().iloc[-1]
+                    expected_cost = compute_market_impact_bps(
+                        order_usd=5000.0, 
+                        adv_usd=_adv if _adv > 0 else 1e6,
+                        daily_vol=last_daily_vol,
+                        spread_bps=1.5
+                    )
+                    
+                    # Prepare meta feature vector
+                    # features = ["alpha_prob", "alpha_prob_smooth", "alpha_prob_zscore", "alpha_prob_percentile",
+                    #             "alpha_signal_persistence", "turbulence_score", "turbulence_percentile",
+                    #             "hmm_state", "volatility_24_feature", "aggressor_ratio", "l2_imbalance_feature",
+                    #             "spread_bps", "expected_cost_bps"]
+                    
+                    # Map regime to int for LightGBM
+                    regime_map = {"bull_calm":0, "bull_neutral":1, "high_vol_rebound":2, 
+                                  "bear_neutral":3, "bear_calm":4, "panic_selloff":5, "unknown":6}
+                    
+                    meta_X = np.array([[
+                        float(last_oof),
+                        float(df["alpha_prob_smooth"].iloc[-1]),
+                        float(df["alpha_prob_zscore"].iloc[-1]),
+                        float(df["alpha_prob_percentile"].iloc[-1]),
+                        float(df["alpha_signal_persistence"].iloc[-1]),
+                        float(last["turbulence_score"]),
+                        float(df["turbulence_score"].rolling(100).rank(pct=True).iloc[-1]),
+                        regime_map.get(current_regime, 6),
+                        float(last["volatility_24_feature"]),
+                        float(last.get("aggressor_ratio", 0.5)),
+                        float(last.get("book_imbalance", 0.0)), # proxy for l2
+                        1.5, # spread_bps constant
+                        expected_cost
+                    ]])
+                    
+                    meta_prob = float(self._meta.predict(meta_X)[0])
+                    
+                    # Apply Veto
+                    # Threshold 0.60 as per deployment baseline
+                    if meta_prob < 0.60 and raw_target_pos > 0:
+                        raw_target_pos = 0.0
+                        veto_reason = "LOW_META_PROB"
+                    elif expected_cost > 15.0 and raw_target_pos > 0:
+                        raw_target_pos *= 0.5 # half size if cost > 15bps
+                        veto_reason = "HIGH_COST_HALVED"
+                        
+                except Exception as e:
+                    logger.warning("Meta-Gate failed: %s", e, exc_info=True)
+                    veto_reason = "META_ERROR"
+
             pos_diff = abs(raw_target_pos - self._current_target_pos)
             should_update = False
             
@@ -572,8 +644,8 @@ class _ZmqListener(threading.Thread):
             
             if should_update:
                 logger.info(
-                    "[EXECUTION EVENT] Pos Update: %.4f -> %.4f (diff=%.4f)",
-                    self._current_target_pos, raw_target_pos, pos_diff
+                    "[EXECUTION EVENT] Pos Update: %.4f -> %.4f (diff=%.4f) | Meta: %.3f | Veto: %s",
+                    self._current_target_pos, raw_target_pos, pos_diff, meta_prob, veto_reason
                 )
                 self.set_virtual_position(raw_target_pos)
 
@@ -590,6 +662,9 @@ class _ZmqListener(threading.Thread):
                     "is_event":     is_event,
                     "atr14":        atr14,
                     "htf_regime":   htf_regime,
+                    "meta_prob":    meta_prob,
+                    "veto_reason":  veto_reason,
+                    "expected_cost_bps": expected_cost,
                 })
 
             # 8. Dashboard Diagnostics (fire-and-forget, never blocks pipeline)
@@ -854,10 +929,20 @@ class InstitutionalDollarStrategy(IStrategy):
         self._hmm_htf    = HMMRegimeModel(n_components=3, n_init=3)
         self._sizer      = FractionalKellySizer(kelly_fraction=0.5, max_drawdown=0.10)
 
+        # 2.5 Load Meta-model (Gatekeeper)
+        meta_path = _RL_DIR / "models" / "meta_model_v1" / "gatekeeper.txt"
+        self._meta_model = None
+        if meta_path.exists():
+            self._meta_model = lgb.Booster(model_file=str(meta_path))
+            logger.info("Meta-model (Gatekeeper) loaded: %s", meta_path)
+        else:
+            logger.warning("Meta-model NOT FOUND at %s. Veto logic will be disabled.", meta_path)
+
         # 3. Start background ZMQ listener thread
         self._zmq_listener = _ZmqListener(
             alpha_model=self._alpha_model,
             alpha_slow_model=self._alpha_slow_model,
+            meta_model=self._meta_model,
             turbulence_engine=self._turbulence,
             hmm_model=self._hmm,
             hmm_model_htf=self._hmm_htf,

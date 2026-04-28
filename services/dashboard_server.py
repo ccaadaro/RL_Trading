@@ -29,6 +29,7 @@ import zmq.asyncio
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +54,14 @@ clients: Set[WebSocket] = set()
 
 app = FastAPI(title="Institutional Dashboard")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 _DASHBOARD_HTML = Path(__file__).parent / "dashboard.html"
 
 
@@ -65,9 +74,10 @@ async def index():
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
+    logger.info("WEBSOCKET ATTEMPT: %s", ws.client)
     await ws.accept()
     clients.add(ws)
-    logger.info("Client connected (%d total)", len(clients))
+    logger.info("WEBSOCKET ACCEPTED. Total clients: %d", len(clients))
 
     # Send full state snapshot on connect so the client renders immediately
     snapshot = {
@@ -78,16 +88,38 @@ async def websocket_endpoint(ws: WebSocket):
         "latest_diag": latest_diag,
     }
     try:
-        await ws.send_text(json.dumps(snapshot, default=str))
-    except Exception:
+        msg = json.dumps(snapshot, default=str)
+        await ws.send_text(msg)
+        logger.info("SNAPSHOT SENT to %s", ws.client)
+
+        # Immediate "Signal of Life" for Activity Feed
+        hb = {
+            "type": "diag",
+            "diag": {
+                "ts": time.time(),
+                "veto_reason": "none",
+                "target_pos": 0.0,
+                "regime": "system_ready",
+                "is_event": True,
+                "oof_pred": 0.5,
+                "msg": "Dashboard Link Established - Waiting for Dollar Bar..."
+            }
+        }
+        await ws.send_text(json.dumps(hb, default=str))
+    except Exception as e:
+        logger.error("Error sending snapshot: %s", e)
         clients.discard(ws)
         return
 
     try:
         while True:
-            await asyncio.sleep(60)   # keep-alive; updates come via broadcast
+            # Keep-alive loop
+            data = await ws.receive_text()
+            logger.info("Received from client: %s", data)
     except (WebSocketDisconnect, asyncio.CancelledError):
         pass
+    except Exception as e:
+        logger.error("WS Loop Error: %s", e)
     finally:
         clients.discard(ws)
         logger.info("Client disconnected (%d remaining)", len(clients))
@@ -95,7 +127,16 @@ async def websocket_endpoint(ws: WebSocket):
 
 async def broadcast(payload: dict):
     if not clients:
+        # Silently return to avoid log spam if no one is watching
         return
+    
+    p_type = payload.get("type")
+    # Log every bar/diag, and every 100th book
+    do_log = (p_type != "book") or (getattr(broadcast, 'count', 0) % 100 == 0)
+    if do_log:
+        logger.info(f"Broadcasting {p_type} to {len(clients)} clients")
+        broadcast.count = getattr(broadcast, 'count', 0) + 1
+
     msg = json.dumps(payload, default=str)
     dead = set()
     for ws in clients:
@@ -116,7 +157,9 @@ async def zmq_reader():
     sub = ctx.socket(zmq.SUB)
     sub.connect("tcp://127.0.0.1:5555")
     sub.connect("tcp://127.0.0.1:5556")
-    sub.setsockopt(zmq.SUBSCRIBE, b"")   # subscribe to all topics
+    sub.setsockopt(zmq.SUBSCRIBE, b"DOLLAR_BAR")
+    sub.setsockopt(zmq.SUBSCRIBE, b"BOOK_TICKER")
+    sub.setsockopt(zmq.SUBSCRIBE, b"DIAGNOSTICS")
 
     logger.info("ZMQ SUB connected to :5555 and :5556")
 
@@ -130,16 +173,29 @@ async def zmq_reader():
 
             if topic == b"DOLLAR_BAR":
                 bar_buffer.append(payload)
+                logger.info(f"Received DOLLAR_BAR update (close={payload.get('close')})")
                 await broadcast({"type": "bar", "bar": payload})
 
             elif topic == b"BOOK_TICKER":
+                if not hasattr(zmq_reader, 'book_logged'):
+                    logger.info(f"BOOK keys: {list(payload.keys())}")
+                    zmq_reader.book_logged = True
                 book_state = payload
+                # Log every 200th to confirm flow without flooding
+                if getattr(zmq_reader, 'b_count', 0) % 200 == 0:
+                    logger.info("BOOK_TICKER flow active")
+                zmq_reader.b_count = getattr(zmq_reader, 'b_count', 0) + 1
                 await broadcast({"type": "book", "book": payload})
 
             elif topic == b"DIAGNOSTICS":
                 diag_buffer.append(payload)
                 latest_diag = payload
                 await broadcast({"type": "diag", "diag": payload})
+            
+            # Debug: log every 10th book ticker to verify flow
+            if topic == b"BOOK_TICKER":
+                static_count = getattr(zmq_reader, 'count', 0)
+                zmq_reader.count = static_count + 1
 
         except asyncio.CancelledError:
             break
@@ -163,5 +219,5 @@ if __name__ == "__main__":
         "dashboard_server:app",
         host="0.0.0.0",
         port=8050,
-        log_level="warning",
+        log_level="info",
     )
