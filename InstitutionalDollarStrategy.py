@@ -109,8 +109,8 @@ class InstitutionalSignalEngine(threading.Thread):
         self._signal        = signal_store
         self._lock          = lock
         self._provider      = provider
-        self._running       = True
-        self._provider      = provider
+        self._zmq_addr      = ZMQ_DAEMON_ADDR
+        self._topic         = TOPIC_DOLLAR_BAR
         self._running       = True
 
         # Clock Decoupling State
