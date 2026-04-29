@@ -222,7 +222,7 @@ class _ZmqListener(threading.Thread):
                 model_features = self._alpha.feature_name()
                 X_fast = X[model_features].fillna(0.0)
                 fast_preds = self._alpha.predict(X_fast)
-                df["oof_pred_fast"] = pd.Series(fast_preds).fillna(0.5).clip(0.0, 1.0)
+                df["alpha_prob_fast"] = pd.Series(fast_preds).fillna(0.5).clip(0.0, 1.0)
 
                 # 2. Slow Alpha (1h Ensemble Logic)
                 alpha_slow = 0.5
@@ -246,20 +246,20 @@ class _ZmqListener(threading.Thread):
                     if total_w > 0:
                         alpha_slow = 1.0 / (1.0 + np.exp(-logits / total_w))
                 
-                df["oof_pred_slow"] = alpha_slow
+                df["alpha_prob_slow"] = alpha_slow
                 
                 # 3. Stacked Prediction: Requirement of cross-timeframe agreement
-                last_fast = float(df["oof_pred_fast"].iloc[-1])
+                last_fast = float(df["alpha_prob_fast"].iloc[-1])
                 if abs(alpha_slow - 0.5) < 0.02: 
                     # If slow signal is neutral, we dampen the fast signal significantly
-                    df["oof_pred"] = 0.5 + (last_fast - 0.5) * 0.3
+                    df["alpha_prob"] = 0.5 + (last_fast - 0.5) * 0.3
                 else:
                     is_bull = (alpha_slow > 0.51) and (last_fast > 0.51)
                     is_bear = (alpha_slow < 0.49) and (last_fast < 0.49)
                     if not (is_bull or is_bear):
-                        df["oof_pred"] = 0.5 # kill signal
+                        df["alpha_prob"] = 0.5 # kill signal
                     else:
-                        df["oof_pred"] = last_fast
+                        df["alpha_prob"] = last_fast
 
             except Exception as e:
                 logger.warning("Combined Alpha inference failed: %s", e, exc_info=True)
@@ -268,7 +268,7 @@ class _ZmqListener(threading.Thread):
             # Meta-model "Gatekeeper" Features (Context-Aware)
             try:
                 # 1. Feature Prep
-                alpha_probs = df["oof_pred"]
+                alpha_probs = df["alpha_prob"]
                 df["alpha_prob_smooth"] = alpha_probs.ewm(span=10).mean()
                 df["alpha_prob_zscore"] = (alpha_probs - alpha_probs.rolling(200).mean()) / alpha_probs.rolling(200).std()
                 df["alpha_prob_percentile"] = alpha_probs.rolling(1000).rank(pct=True)
@@ -370,7 +370,7 @@ class _ZmqListener(threading.Thread):
             barrier_height = max(0.003, 1.5 * last_daily_vol)
 
             raw_target_pos = self._sizer.size_portfolio(
-                probabilities=df["oof_pred"],
+                probabilities=df["alpha_prob"],
                 regimes=df["hmm_semantic_regime"],
                 turbulence=df["turbulence_score"],
                 adaptive_threshold=adaptive_thr,
@@ -394,7 +394,7 @@ class _ZmqListener(threading.Thread):
                 pass
 
             # T2.5-Phase 5: Stacking and Regime Hardening
-            last_oof = float(last["oof_pred"])
+            last_oof = float(last["alpha_prob"])
             
             # Kill-Switch 1: Regime Based
             # Total blackout in high-risk regimes for Longs
@@ -413,7 +413,7 @@ class _ZmqListener(threading.Thread):
             # Kill-Switch 3: Long-Only Filter
             if last_oof < 0.50:
                 raw_target_pos = 0.0
-                logger.info("[KILL-SWITCH] Long-Only Filter active (oof_pred < 0.50) -> Position zeroed")
+                logger.info("[KILL-SWITCH] Long-Only Filter active (alpha_prob < 0.50) -> Position zeroed")
 
             confidence_scale = min(1.0, (2.0 * abs(last_oof - 0.5)) / 0.10)
             raw_target_pos = float(raw_target_pos) * confidence_scale
@@ -632,19 +632,19 @@ class _ZmqListener(threading.Thread):
                     self._pending_regime in _bull_targets
                     or self._committed_regime in _bull_targets
                 )
-                _hold_alpha_ok = float(last["oof_pred"]) >= 0.45
+                _hold_alpha_ok = float(last["alpha_prob"]) >= 0.45
                 if _hold_regime_ok and _hold_alpha_ok:
                     if raw_target_pos < 0.10:
                         raw_target_pos = 0.10
                     self._bypass_hold_bars -= 1
                     logger.debug(
                         "[BYPASS HOLD] Flooring at 10%% — %d bars remaining (regime=%s alpha=%.3f)",
-                        self._bypass_hold_bars, self._committed_regime, float(last["oof_pred"]),
+                        self._bypass_hold_bars, self._committed_regime, float(last["alpha_prob"]),
                     )
                 else:
                     logger.info(
                         "[BYPASS HOLD] Cancelled — pending=%s committed=%s alpha=%.3f",
-                        self._pending_regime, self._committed_regime, float(last["oof_pred"]),
+                        self._pending_regime, self._committed_regime, float(last["alpha_prob"]),
                     )
                     self._bypass_hold_bars = 0
 
@@ -656,7 +656,7 @@ class _ZmqListener(threading.Thread):
             #   4. L1 book imbalance >= -0.20 (not heavily sell-side dominated)
             # This bridges the HMM lag on V-bottom entries in long-only mode.
             if (is_event
-                    and float(last["oof_pred"]) >= 0.65
+                    and float(last["alpha_prob"]) >= 0.65
                     and _turb_ok
                     and _imbalance_ok
                     and self._pending_regime in ("bull_calm", "bull_neutral", "high_vol_rebound")
@@ -666,7 +666,7 @@ class _ZmqListener(threading.Thread):
                 self._bypass_hold_bars = self._HYSTERESIS_TO_BULL  # sustain for N bars
                 logger.info(
                     "[ALPHA BYPASS] Pending %s + alpha=%.3f + turb=%.3f < thr=%.3f + imb=%+.3f → floor 10%% (hold=%d bars)",
-                    self._pending_regime, float(last["oof_pred"]),
+                    self._pending_regime, float(last["alpha_prob"]),
                     _turb_last, _thr_val if _thr_val is not None else float("inf"),
                     _bar_imbalance, self._bypass_hold_bars,
                 )
@@ -714,7 +714,7 @@ class _ZmqListener(threading.Thread):
                     "target_pos":   float(self._current_target_pos),
                     "regime":       str(last["hmm_semantic_regime"]),
                     "turbulence":   float(last["turbulence_score"]),
-                    "oof_pred":     float(last["oof_pred"]),
+                    "alpha_prob":     float(last["alpha_prob"]),
                     "meta_prob":    float(meta_prob),
                     "veto_reason":  str(veto_reason),
                     "close":        float(last["close"]),
@@ -745,7 +745,7 @@ class _ZmqListener(threading.Thread):
                     "pending_regime_threshold": _hysteresis_needed if self._pending_regime else None,
                     "turbulence":           _sf(last["turbulence_score"], 0.0),
                     "turbulence_thr":       _thr,
-                    "oof_pred":             _sf(last["oof_pred"], 0.5),
+                    "alpha_prob":             _sf(last["alpha_prob"], 0.5),
                     "close":                _sf(last["close"]),
                     "ts":                   time.time(),
                     "n_bars":               len(buffer_copy),
@@ -775,7 +775,7 @@ class _ZmqListener(threading.Thread):
                 "Pipeline OK | bar=%d close=%.2f alpha=%.3f regime=%s target_pos=%.4f (event=%s)",
                 len(buffer_copy),
                 float(last["close"]),
-                float(last["oof_pred"]),
+                float(last["alpha_prob"]),
                 str(last["hmm_semantic_regime"]),
                 float(self._current_target_pos),
                 "YES" if is_event else "no",
@@ -903,7 +903,7 @@ class InstitutionalDollarStrategy(IStrategy):
         self._signal_lock      = threading.Lock()
         self._latest_signal    = {
             "target_pos": 0.0, "regime": "unknown", "turbulence": 0.0,
-            "oof_pred": 0.5, "close": None, "ts": 0.0,
+            "alpha_prob": 0.5, "close": None, "ts": 0.0,
             "best_bid": None, "best_ask": None, "mid": None, "n_bars": 0,
         }
         self._boot_time = time.time()
@@ -1047,7 +1047,7 @@ class InstitutionalDollarStrategy(IStrategy):
                 self._last_watchdog_log_time = now
             # BUG #20 FIX: Ensure columns exist before early return
             for col, default in [("target_pos", 0.0), ("regime", "unknown"),
-                                 ("turbulence", 0.0), ("oof_pred", 0.5), ("n_bars", 0)]:
+                                 ("turbulence", 0.0), ("alpha_prob", 0.5), ("n_bars", 0)]:
                 dataframe[col] = default
             return dataframe
 
@@ -1071,7 +1071,7 @@ class InstitutionalDollarStrategy(IStrategy):
         dataframe["target_pos"]  = sig.get("target_pos",  0.0)
         dataframe["regime"]      = sig.get("regime",      "unknown")
         dataframe["turbulence"]  = sig.get("turbulence",  0.0)
-        dataframe["oof_pred"]    = sig.get("oof_pred",    0.5)
+        dataframe["alpha_prob"]    = sig.get("alpha_prob",    0.5)
         dataframe["n_bars"]      = sig.get("n_bars",      0)
 
         return dataframe
@@ -1146,7 +1146,7 @@ class InstitutionalDollarStrategy(IStrategy):
         with self._signal_lock:
             targ        = self._latest_signal.get("target_pos", 0.0)
             veto_reason = self._latest_signal.get("veto_reason", "none")
-            alpha_prob  = self._latest_signal.get("oof_pred", 0.5)
+            alpha_prob  = self._latest_signal.get("alpha_prob", 0.5)
             meta_prob   = self._latest_signal.get("meta_prob", 0.0)
 
         if targ <= 0:
