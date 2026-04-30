@@ -74,8 +74,6 @@ from utils.data_providers  import MarketDataProvider, ZmqDollarBarProvider, Freq
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 # ── ZMQ daemon topics (must match market_data_daemon.py) ─────────────────────
 TOPIC_DOLLAR_BAR  = b"DOLLAR_BAR"
 TOPIC_BOOK_TICKER = b"BOOK_TICKER"
@@ -581,6 +579,8 @@ class InstitutionalSignalEngine(threading.Thread):
 
             # Kill-Switch 4: Meta-Model Gatekeeper (Tradeability)
             meta_prob = 0.0
+            veto_reason = "none"
+            allow_trade = True
             if self._meta:
                 try:
                     # Capture latest book data for spread calculation
@@ -615,9 +615,6 @@ class InstitutionalSignalEngine(threading.Thread):
                     meta_prob = self._meta.predict(X_meta)[0]
                     
                     # LOGGING EXHAUSTIVO (Per Inerence)
-                    veto_reason = "none"
-                    allow_trade = True
-                    
                     if meta_prob < 0.60:
                         raw_target_pos = 0.0
                         allow_trade = False
@@ -915,7 +912,7 @@ class InstitutionalSignalEngine(threading.Thread):
                     "confidence_scale":     _sf(confidence_scale, 0.0),
                     "htf_regime":           htf_regime,
                     "htf_multiplier":       _sf(htf_mult, 0.5),
-                    "htf_multiplier":       _sf(htf_mult, 0.5),
+                    "htf_floor":            _sf(htf_floor, 0.0),
                     "book_imbalance":       _sf(_bar_imbalance, 0.0),
                     "meta_prob":            _sf(meta_prob, 0.0),
                     "veto_reason":          str(veto_reason),
@@ -1085,6 +1082,7 @@ class InstitutionalDollarStrategy(IStrategy):
         self._hmm              = None
         self._sizer            = None
         self._zmq_listener     = None
+        self._signal_engine    = None
         self._signal_lock      = threading.Lock()
         self._latest_signal    = {
             "target_pos": 0.0, "regime": "unknown", "turbulence": 0.0,
@@ -1312,7 +1310,7 @@ class InstitutionalDollarStrategy(IStrategy):
 
         This runs every ~1m (each populate_indicators cycle) — lightweight.
         """
-        if not self._zmq_listener:
+        if not self._signal_engine:
             return
 
         try:
@@ -1334,7 +1332,7 @@ class InstitutionalDollarStrategy(IStrategy):
             except Exception:
                 return  # wallets not yet initialised
 
-        virtual_pos = self._zmq_listener._current_target_pos
+        virtual_pos = self._signal_engine._current_target_pos
         drift = abs(actual_exposure - virtual_pos)
 
         if drift > 0.03:  # 3% reconciliation threshold
@@ -1342,7 +1340,7 @@ class InstitutionalDollarStrategy(IStrategy):
                 "[D-06] Position reconciliation: virtual=%.3f actual=%.3f drift=%.3f → syncing",
                 virtual_pos, actual_exposure, drift
             )
-            self._zmq_listener.set_virtual_position(actual_exposure)
+            self._signal_engine.set_virtual_position(actual_exposure)
 
 
     def populate_entry_trend(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
