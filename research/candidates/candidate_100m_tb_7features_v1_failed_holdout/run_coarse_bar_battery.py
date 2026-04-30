@@ -82,7 +82,7 @@ def evaluate_theta(theta: float, cfg: dict, features: list) -> dict:
         compute_uniqueness_weights, compute_recency_weights, purged_walk_forward
     )
 
-    feat_path = Path(f"cache/dollar_bars_btc_{int(theta)}_v2_features.feather")
+    feat_path = Path(f"cache/dollar_bars_btc_{int(theta)}_minimal_features.feather")
     if not feat_path.exists():
         print(f"  [eval] {feat_path} not found — skipping evaluation.")
         return {}
@@ -142,19 +142,20 @@ def evaluate_theta(theta: float, cfg: dict, features: list) -> dict:
     eval_df["alpha_prob_oof"] = alpha_probs
     val_oos = eval_df[eval_df["date"] >= "2024-01-01"].copy()
     
-    # Also get Holdout predictions (train on Research + Validation)
-    X_train = eval_df[available]
-    y_train = eval_df["binary_target"]
-    sw_train = sw
+    if len(val_oos) < 50:
+        return {"theta": theta, "oof_auc": round(avg_auc, 4), "status": "insufficient_val"}
+
+    # Map signals back to full time series for proper accounting
+    # Use full series to account for continuous exposure and Buy & Hold comparison
+    full_val = df_all[(df_all["date"] >= "2024-01-01") & (df_all["date"] < "2025-01-01")].copy()
+    full_val = full_val.sort_values("date").reset_index(drop=True)
     
-    model = lgb.LGBMClassifier(**LGB_PARAMS)
-    model.fit(X_train, y_train, sample_weight=sw_train)
+    # Threshold signals
+    thr = val_oos["alpha_prob_oof"].quantile(0.60)
+    val_oos["is_signal"] = (val_oos["alpha_prob_oof"] > thr).astype(int)
     
-    if len(holdout_df) > 0:
-        probs = model.predict_proba(holdout_df[available])[:, 1]
-        holdout_df.loc[:, "alpha_prob"] = probs
-    else:
-        holdout_df["alpha_prob"] = pd.Series(dtype=float)
+    # Map signals to full_val by 'date'
+    full_val = full_val.merge(val_oos[["date", "is_signal"]], on="date", how="left").fillna(0)
     
     def simulate_portfolio(price_series, signal_series, v_bars):
         n = len(price_series)
@@ -162,6 +163,13 @@ def evaluate_theta(theta: float, cfg: dict, features: list) -> dict:
         sigs = signal_series.values
         
         # Track active signal duration
+        active_matrix = np.zeros((n, v_bars))
+        for i in range(n):
+            if sigs[i] == 1:
+                # Signal i is active from i to min(i + v_bars, n)
+                end = min(i + v_bars, n)
+                active_matrix[i : end, 0] = 1 # Mark as active in the period
+        
         # Sum active signals per bar
         active_counts = np.zeros(n)
         for i in np.where(sigs == 1)[0]:
@@ -175,6 +183,7 @@ def evaluate_theta(theta: float, cfg: dict, features: list) -> dict:
         p_rets[1:] = target_exposure[:-1] * rets[1:]
         
         # Costs (7bps per side = 14bps roundtrip if full flip)
+        # cost_t = abs(exp_t - exp_t-1) * 0.0007
         costs = np.abs(np.diff(target_exposure, prepend=0)) * COST_RATE
         
         net_rets = p_rets - costs
@@ -196,76 +205,54 @@ def evaluate_theta(theta: float, cfg: dict, features: list) -> dict:
             "n_trades": n_trades, "net_bps": net_bps_per_trade, "to": turnover
         }
 
-    def simulate_period(df_all_period, df_signals_period, v_bars, name=""):
-        full_p = df_all_period.sort_values("date").reset_index(drop=True)
-        # Map signals
-        if "alpha_prob" not in df_signals_period.columns:
-             # Fallback if somehow missing
-             df_signals_period = df_signals_period.copy()
-             df_signals_period["alpha_prob"] = 0.5
-             
-        full_p = full_p.merge(df_signals_period[["date", "alpha_prob"]], on="date", how="left").fillna(0)
-        
-        # Threshold (using the same quantile from validation to be consistent)
-        thr = val_oos["alpha_prob"].quantile(0.60)
-        full_p["is_signal"] = (full_p["alpha_prob"] > thr).astype(int)
-        
-        perf = simulate_portfolio(full_p["close"], full_p["is_signal"], v_bars)
-        
-        # Benchmarks
-        bh_ret = full_p["close"].iloc[-1] / full_p["close"].iloc[0] - 1
-        
-        # Random Benchmarks (Matched Time-in-Market)
-        n_sims = 1000
-        random_rois = []
-        target_sigs = int(full_p["is_signal"].sum())
-        
-        if target_sigs > 0:
-            for _ in range(n_sims):
-                rand_sigs = np.zeros(len(full_p))
-                indices = np.random.choice(len(full_p), target_sigs, replace=False)
-                rand_sigs[indices] = 1
-                sim = simulate_portfolio(full_p["close"], pd.Series(rand_sigs), v_bars)
-                random_rois.append(sim["roi"])
-            p95_rand = np.percentile(random_rois, 95)
-        else:
-            p95_rand = 0.0
-            
-        tag = "PASS" if perf["roi"] > p95_rand else "FAIL"
-        
-        return {
-            "roi": perf["roi"], "dd": perf["dd"], "net_bps": perf["net_bps"],
-            "to": perf["to"], "tim": perf["tim"], "bh": bh_ret, "p95": p95_rand, "tag": tag
-        }
-
     v = cfg["vertical_bars"]
-    # Run for Validation 2024
-    df_all_val = df_all[(df_all["date"] >= "2024-01-01") & (df_all["date"] < "2025-01-01")]
-    val_oos = val_oos.copy()
-    val_oos.loc[:, "alpha_prob"] = val_oos["alpha_prob_oof"]
-    val_metrics = simulate_period(df_all_val, val_oos, v, "VAL_2024")
+    model_perf = simulate_portfolio(full_val["close"], full_val["is_signal"], v)
     
-    # Run for Holdout 2025
-    df_all_hold = df_all[df_all["date"] >= "2025-01-01"]
-    if len(holdout_df) > 0 and len(df_all_hold) > 5:
-        hold_metrics = simulate_period(df_all_hold, holdout_df, v, "HOLD_2025")
-    else:
-        hold_metrics = {"roi": 0, "tag": "N/A", "bh": 0, "p95": 0, "net_bps": 0, "to": 0, "tim": 0, "dd": 0}
+    # Benchmarks
+    bh_ret = full_val["close"].iloc[-1] / full_val["close"].iloc[0] - 1
+    
+    # Always Long (exposure = 1.0 constantly)
+    always_long_rets = full_val["close"].pct_change().fillna(0)
+    # Entry cost only (exit not in loop)
+    al_net_rets = always_long_rets.copy()
+    al_net_rets.iloc[0] -= COST_RATE # Entry
+    al_equity = np.cumprod(1 + al_net_rets)
+    al_roi = al_equity.iloc[-1] - 1
+
+    # Random Benchmarks (Matched Time-in-Market)
+    n_sims = 200
+    random_rois = []
+    target_sigs = int(val_oos["is_signal"].sum())
+    
+    for _ in range(n_sims):
+        # Place random signals
+        rand_sigs = np.zeros(len(full_val))
+        indices = np.random.choice(len(full_val), target_sigs, replace=False)
+        rand_sigs[indices] = 1
+        sim = simulate_portfolio(full_val["close"], pd.Series(rand_sigs), v)
+        random_rois.append(sim["roi"])
+    
+    p50_rand = np.percentile(random_rois, 50)
+    p95_rand = np.percentile(random_rois, 95)
+    
+    tag = "PASS" if model_perf["roi"] > p95_rand else "FAIL"
 
     result = {
         "theta": theta,
+        "bars_per_day": round(cfg["bars_per_day"], 1),
+        "n_train": len(research_df),
+        "n_val": len(validation_df),
         "oof_auc": round(avg_auc, 4),
-        "v_roi": round(val_metrics["roi"], 4),
-        "v_bh": round(val_metrics["bh"], 4),
-        "v_p95": round(val_metrics["p95"], 4),
-        "v_tag": val_metrics["tag"],
-        "h_roi": round(hold_metrics["roi"], 4),
-        "h_bh": round(hold_metrics["bh"], 4),
-        "h_p95": round(hold_metrics["p95"], 4),
-        "h_tag": hold_metrics["tag"],
-        "net_bps": round(val_metrics["net_bps"], 2),
-        "to": round(val_metrics["to"] / (len(df_all_val) / cfg["bars_per_day"] / 30.4), 2),
-        "tim": round(val_metrics["tim"], 4)
+        "roi_net": round(model_perf["roi"], 4),
+        "max_dd": round(model_perf["dd"], 4),
+        "net_bps": round(model_perf["net_bps"], 2),
+        "to_monthly": round(model_perf["to"] / (len(full_val) / cfg["bars_per_day"] / 30.4), 2),
+        "tim": round(model_perf["tim"], 4),
+        "roi_bh": round(bh_ret, 4),
+        "roi_al": round(al_roi, 4),
+        "rand_p50": round(p50_rand, 4),
+        "rand_p95": round(p95_rand, 4),
+        "alpha_tag": tag
     }
     return result
 
@@ -328,7 +315,7 @@ def process_theta(theta, args, features):
         # Step 3: Feature engineering
         if not args.skip_features:
             log(f"  [build_features theta={int(theta):,}] Starting...")
-            cmd = [sys.executable, "scripts/build_features_v2.py",
+            cmd = [sys.executable, "scripts/build_features_minimal.py",
                    "--data", bars_path, "--labels", labeled_path]
             ret = subprocess.run(cmd, cwd=str(_HERE), stdout=f, stderr=f)
             if ret.returncode != 0:
@@ -362,12 +349,11 @@ def main():
                     help="Only evaluate existing feature feathers, no building")
     args = ap.parse_args()
 
-    # v2 Feature Set (7 Base + 3 Second-Order)
+    # Minimal Feature Set for Institutional Audit
     features = [
         "return_3_bars_feature", "return_5_bars_feature", "vol_10_feature",
         "cvd_slope_feature", "aggressor_imbalance_feature", "hma_dist_feature",
-        "wvf_zscore_feature", "cvd_divergence_feature", "hma_slope_feature",
-        "vol_accel_feature"
+        "wvf_zscore_feature"
     ]
 
     print(f"Launching battery for {len(args.thetas)} thetas in parallel...")
@@ -391,25 +377,20 @@ def main():
 
     # ─── Summary table ───────────────────────────────────────────────────────
     if results:
-        print(f"\n{'='*120}")
-        print("INSTITUTIONAL AUDIT: v2 CANDIDATE (Validation 2024 vs Observed 2025)")
-        print(f"{'='*120}")
-        # Build headers
-        print(f"{'Theta':<8} | {'AUC':<6} | {'V_ROI':<8} {'V_BH':<8} {'V_P95':<8} {'V_TAG':<6} | "
-              f"{'H_ROI':<8} {'H_BH':<8} {'H_P95':<8} {'H_TAG':<6}")
-        print("-" * 120)
-        
-        for r in results:
-            t = f"${int(r['theta']/1e6)}M"
-            print(f"{t:<8} | {r['oof_auc']:<6.4f} | "
-                  f"{r['v_roi']:<8.4f} {r['v_bh']:<8.4f} {r['v_p95']:<8.4f} {r['v_tag']:<6} | "
-                  f"{r['h_roi']:<8.4f} {r['h_bh']:<8.4f} {r['h_p95']:<8.4f} {r['h_tag']:<6}")
+        print(f"\n{'='*100}")
+        print("INSTITUTIONAL AUDIT SUMMARY (Validation: 2024)")
+        print(f"{'='*100}")
+        cols = ["theta", "oof_auc", "roi_net", "roi_bh", "roi_al", "rand_p95", 
+                "net_bps", "to_monthly", "tim", "max_dd", "alpha_tag"]
+        df_res = pd.DataFrame(results)[cols]
+        df_res["theta"] = df_res["theta"].apply(lambda x: f"${x/1e6:.0f}M")
+        print(df_res.to_string(index=False))
 
-        print(f"\nAudit Definitions:")
-        print(f"  V_*: Validation Set (2024 Full Year)")
-        print(f"  H_*: Observed Set (2025 Jan - Present) - [NOT FOR OPTIMIZATION]")
-        print(f"  P95: 95th percentile of 1,000 random simulations (Alpha threshold)")
-        print(f"  TAG: PASS if ROI > P95 (Statistically significant alpha)")
+        print(f"\nBenchmark Key:")
+        print(f"  roi_bh: Buy & Hold (Full 2024)")
+        print(f"  roi_al: Always Long (100% Exposure with turnover costs)")
+        print(f"  rand_p95: 95th percentile of 200 random matched simulations")
+        print(f"  alpha_tag: PASS if roi_net > rand_p95")
     else:
         print("\nNo results to summarize.")
 

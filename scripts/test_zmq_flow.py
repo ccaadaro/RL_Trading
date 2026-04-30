@@ -102,7 +102,7 @@ def main():
     import threading as _th
     signal_store = {
         "target_pos": 0.0, "regime": "unknown", "turbulence": 0.0,
-        "oof_pred": 0.5, "close": None, "ts": 0.0,
+        "alpha_prob": 0.5, "close": None, "ts": 0.0,
         "best_bid": None, "best_ask": None, "mid": None, "n_bars": 0,
     }
     lock = _th.Lock()

@@ -30,8 +30,8 @@ def main():
     print(f"Loading {args.data}...")
     df = feather.read_feather(args.data)
     
-    if "oof_pred" not in df.columns or "hmm_semantic_regime" not in df.columns:
-        raise ValueError("Dataframe must contain 'oof_pred', 'turbulence_score', and 'hmm_semantic_regime'")
+    if "alpha_prob" not in df.columns or "hmm_semantic_regime" not in df.columns:
+        raise ValueError("Dataframe must contain 'alpha_prob', 'turbulence_score', and 'hmm_semantic_regime'")
         
     print(f"Total Rows: {len(df):,}")
     
@@ -44,7 +44,7 @@ def main():
         slippage_bps=args.slippage_bps,
     )
 
-    probs = df["oof_pred"].fillna(0.5).clip(0.0, 1.0)
+    probs = df["alpha_prob"].fillna(0.5).clip(0.0, 1.0)
     risk_scale_col = next(
         (c for c in ["volatility", "volatility_24_feature", "realized_vol_1h_feature"] if c in df.columns),
         None,

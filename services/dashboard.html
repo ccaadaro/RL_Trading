@@ -766,7 +766,7 @@ function applyDiag(d) {
   document.getElementById('pending-regime').textContent = pr ? `pending: ${pr.replace(/_/g,' ')} (${pc}/${pth})` : 'stable';
 
   // Alpha oracle
-  const alpha = d.oof_pred ?? 0.5;
+  const alpha = d.alpha_prob ?? 0.5;
   document.getElementById('alpha-fill').style.width = (alpha * 100).toFixed(1) + '%';
   document.getElementById('alpha-fill').style.background = alpha >= 0.55 ? 'var(--green)' : alpha <= 0.45 ? 'var(--red)' : 'var(--blue)';
   document.getElementById('alpha-val').textContent = alpha.toFixed(3);
@@ -837,7 +837,7 @@ function applyDiag(d) {
   if (d.turbulence_thr != null) turbSpark.push('thr', d.turbulence_thr);
   cusumSpark.push('pos', d.cusum_pos_sum ?? 0);
   cusumSpark.push('neg', d.cusum_neg_sum ?? 0);
-  alphaSpark.push('alpha', d.oof_pred ?? 0.5);
+  alphaSpark.push('alpha', d.alpha_prob ?? 0.5);
 
   // Activity Log
   const vetoReason = d.veto_reason || 'none';
@@ -850,7 +850,7 @@ function applyDiag(d) {
     addLog(`ENTRY: Target ${targetPos.toFixed(2)}`, 'entry');
   } else {
     // Model heartbeat
-    addLog(`UPDATE: Regime ${regime.replace(/_/g,' ')} | Alpha ${(d.oof_pred ?? 0.5).toFixed(2)}`, 'heartbeat');
+    addLog(`UPDATE: Regime ${regime.replace(/_/g,' ')} | Alpha ${(d.alpha_prob ?? 0.5).toFixed(2)}`, 'heartbeat');
   }
 }
 
@@ -936,7 +936,7 @@ function connect() {
           if (d.turbulence_thr != null) turbSpark.push('thr', d.turbulence_thr);
           cusumSpark.push('pos', d.cusum_pos_sum ?? 0);
           cusumSpark.push('neg', d.cusum_neg_sum ?? 0);
-          alphaSpark.push('alpha', d.oof_pred ?? 0.5);
+          alphaSpark.push('alpha', d.alpha_prob ?? 0.5);
         });
         break;
 

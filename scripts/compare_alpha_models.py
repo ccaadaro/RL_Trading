@@ -82,7 +82,7 @@ def run_comparison():
     for name, features in models.items():
         print(f"\n--- Evaluating Model: {name} ({len(features)} features) ---")
         
-        oof_preds = np.full(n_samples, np.nan)
+        alpha_probs = np.full(n_samples, np.nan)
         
         for i in range(1, folds):
             val_start = i * fold_size
@@ -98,11 +98,11 @@ def run_comparison():
             model.fit(X_train, y_train, eval_set=[(X_val, y_val)], 
                       callbacks=[lgb.early_stopping(30, verbose=False)])
             
-            oof_preds[val_idx] = model.predict_proba(X_val)[:, 1]
+            alpha_probs[val_idx] = model.predict_proba(X_val)[:, 1]
             
-        oos_idx = ~np.isnan(oof_preds)
+        oos_idx = ~np.isnan(alpha_probs)
         y_oos = df.loc[oos_idx, "binary_target"]
-        p_oos = oof_preds[oos_idx]
+        p_oos = alpha_probs[oos_idx]
         
         auc = roc_auc_score(y_oos, p_oos)
         brier = brier_score_loss(y_oos, p_oos)

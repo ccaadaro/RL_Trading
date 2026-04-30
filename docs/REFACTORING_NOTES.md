@@ -9,8 +9,8 @@
    - **Fix**: Synchronized signature to include `alpha_slow_model` and initialized internal state attributes.
 
 ## Semantic Refactoring
-### Transition: `oof_pred` → `alpha_prob`
-- **Context**: The term `oof_pred` (Out-of-Fold) was legacy from the training pipeline. 
+### Transition: `alpha_prob` → `alpha_prob`
+- **Context**: The term `alpha_prob` (Out-of-Fold) was legacy from the training pipeline. 
 - **Change**: Renamed to `alpha_prob` (or `blended_alpha_prob`) to correctly represent the real-time nature of the signal during live inference.
 - **Coverage**: Applied to `InstitutionalDollarStrategy.py` and all validation scripts.
 

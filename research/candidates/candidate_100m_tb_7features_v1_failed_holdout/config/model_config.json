@@ -1,0 +1,39 @@
+{
+  "features": [
+    "return_3_bars_feature",
+    "return_5_bars_feature",
+    "vol_10_feature",
+    "cvd_slope_feature",
+    "aggressor_imbalance_feature",
+    "hma_dist_feature",
+    "wvf_zscore_feature"
+  ],
+  "model_type": "LightGBM (Shallow)",
+  "LGB_PARAMS": {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 200,
+    "learning_rate": 0.02,
+    "max_depth": 2,
+    "num_leaves": 4,
+    "min_child_samples": 50,
+    "subsample": 0.7,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "reg_alpha": 10.0,
+    "reg_lambda": 10.0,
+    "n_jobs": -1,
+    "random_state": 42,
+    "verbose": -1
+  },
+  "triple_barrier_config": {
+    "pt": 1.5,
+    "sl": 1.0,
+    "pt_floor": 0.0060,
+    "sl_floor": 0.0040,
+    "v_bars": 6,
+    "cusum_span": 24,
+    "daily_window": 10
+  }
+}

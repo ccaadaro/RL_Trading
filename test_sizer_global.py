@@ -14,7 +14,7 @@ sizer = FractionalKellySizer(kelly_fraction=0.5, max_drawdown=0.10)
 
 # Run sizes globally
 targets = sizer.size_portfolio(
-    probabilities=df["oof_pred"],
+    probabilities=df["alpha_prob"],
     regimes=df["hmm_semantic_regime"],
     turbulence=turb,
     adaptive_threshold=adaptive_thr,

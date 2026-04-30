@@ -144,11 +144,14 @@ class InstitutionalSignalEngine(threading.Thread):
         # BUG #23 FIX: Coalescing state
         self._pipeline_inflight = False
         self._inflight_since = 0.0
-        self._executor: Optional[ThreadPoolExecutor] = None
         self._last_t_processed = 0.0
+        # Sync with provider buffer if possible
+        self._bar_buffer = getattr(provider, "_bar_buffer", [])
+        self._executor = ThreadPoolExecutor(max_workers=1)
 
         # Dashboard diagnostics: fire-and-forget queue (thread-safe)
         self._diag_queue: queue.SimpleQueue = queue.SimpleQueue()
+        self._last_hb = 0.0
 
         # Institutional Stats Monitoring (Shadow-Live)
         self._stats = {
@@ -355,7 +358,7 @@ class InstitutionalSignalEngine(threading.Thread):
             if l_sig.get("best_ask") and l_sig.get("best_bid") and mid > 0:
                 spread_bps = (l_sig["best_ask"] - l_sig["best_bid"]) / mid * 10000
             
-            spread_bps = spread_bps if spread_bps > 0 else 2.0
+            spread_bps = spread_bps if (spread_bps > 0 and mid > 0) else 100.0
             expected_cost_bps = 5 + spread_bps + 2 # 5 fee + spread + 2 slippage
             
             # Latency Watchdog
@@ -869,7 +872,7 @@ class InstitutionalSignalEngine(threading.Thread):
                     "veto_reason":  str(veto_reason),
                     "close":        float(last["close"]),
                     "ts":           time.time(),
-                    "n_bars":       len(buffer_copy),
+                    "n_bars":       len(df),
                     "is_event":     is_event,
                     "atr14":        atr14,
                     "htf_regime":   htf_regime,
@@ -898,7 +901,7 @@ class InstitutionalSignalEngine(threading.Thread):
                     "alpha_prob":             _sf(last["alpha_prob"], 0.5),
                     "close":                _sf(last["close"]),
                     "ts":                   time.time(),
-                    "n_bars":               len(buffer_copy),
+                    "n_bars":               len(df),
                     "is_event":             is_event,
                     "cusum_pos_sum":        _sf(self._cusum._pos_sum, 0.0),
                     "cusum_neg_sum":        _sf(self._cusum._neg_sum, 0.0),
@@ -923,7 +926,7 @@ class InstitutionalSignalEngine(threading.Thread):
 
             logger.info(
                 "Pipeline OK | bar=%d close=%.2f alpha=%.3f regime=%s target_pos=%.4f (event=%s)",
-                len(buffer_copy),
+                len(df),
                 float(last["close"]),
                 float(last["alpha_prob"]),
                 str(last["hmm_semantic_regime"]),
@@ -951,66 +954,98 @@ class InstitutionalSignalEngine(threading.Thread):
 
         diag_ctx = zmq.Context()
         diag_sock = diag_ctx.socket(zmq.PUB)
-        diag_sock.setsockopt(zmq.SNDHWM, 10)   # drop if no subscriber, never block
+        diag_sock.setsockopt(zmq.LINGER, 0)  # don't block on close
         diag_sock.bind(ZMQ_DIAG_ADDR)
 
-        self._executor = ThreadPoolExecutor(max_workers=1)
+        # self._executor is now initialized in __init__
 
         logger.info("ZMQ listener connected to %s | DIAG PUB at %s", self._zmq_addr, ZMQ_DIAG_ADDR)
 
         while self._running:
             try:
-                # BUG #23 FIX: Safety reset for inflight flag if stuck for >60s
+                # 1. Pipeline Stuck Safety
                 if self._pipeline_inflight and (time.time() - self._inflight_since > 60):
                     logger.warning("[SAFETY] Resetting stuck pipeline_inflight flag.")
                     self._pipeline_inflight = False
 
-                topic, payload_bytes = sock.recv_multipart()
-                payload = json.loads(payload_bytes.decode())
-
-                if topic == TOPIC_DOLLAR_BAR:
-                    self._bar_buffer.append(payload)
-                    if len(self._bar_buffer) > 4000:
-                        self._bar_buffer = self._bar_buffer[-2000:]
-
-                    # Update n_bars immediately so tests can track progress
-                    with self._lock:
-                        self._signal["n_bars"] = len(self._bar_buffer)
-
-                    # BUG #23 FIX: Coalescing — skip if a pipeline is already inflight.
-                    # This prevents the queue from growing during long HMM refits.
-                    if not self._pipeline_inflight:
-                        self._pipeline_inflight = True
-                        self._inflight_since = time.time()
-                        try:
-                            self._executor.submit(self._run_pipeline)
-                        except Exception as e:
-                            self._pipeline_inflight = False
-                            logger.warning("Failed to submit pipeline: %s", e)
-
-                elif topic == TOPIC_BOOK_TICKER:
-                    with self._lock:
-                        self._signal["best_bid"]       = payload.get("bid")
-                        self._signal["best_ask"]       = payload.get("ask")
-                        self._signal["mid"]            = (payload.get("bid", 0) + payload.get("ask", 0)) / 2 if payload.get("bid") else 0
-                        self._signal["book_imbalance"] = payload.get("l1_imb", 0.0)
-
-            except zmq.Again:
-                pass  # Timeout — just loop
-            except Exception as e:
-                logger.error("ZMQ recv error: %s", e)
-                time.sleep(1)
-
-            # Drain diagnostics queue and publish (fire-and-forget, never blocks)
-            while not self._diag_queue.empty():
+                # 2. Non-blocking Recv
                 try:
-                    diag = self._diag_queue.get_nowait()
-                    diag_sock.send_multipart(
-                        [b"DIAGNOSTICS", json.dumps(diag, default=str).encode()],
-                        flags=zmq.NOBLOCK,
-                    )
-                except Exception:
+                    parts = sock.recv_multipart(flags=zmq.NOBLOCK)
+                    if len(parts) >= 2:
+                        topic = parts[0]
+                        payload = json.loads(parts[1].decode())
+                        
+                        if topic == TOPIC_DOLLAR_BAR:
+                            self._bar_buffer.append(payload)
+                            if len(self._bar_buffer) > 4000:
+                                self._bar_buffer = self._bar_buffer[-2000:]
+                            with self._lock:
+                                self._signal["n_bars"] = len(self._bar_buffer)
+                                self._signal["ts"] = time.time()  # Keep Freqtrade Watchdog happy
+
+                            if not self._pipeline_inflight:
+                                self._pipeline_inflight = True
+                                self._inflight_since = time.time()
+                                try:
+                                    self._executor.submit(self._run_pipeline)
+                                except Exception as e:
+                                    self._pipeline_inflight = False
+                                    logger.warning("Failed to submit pipeline: %s", e)
+
+                        elif topic == TOPIC_BOOK_TICKER:
+                            with self._lock:
+                                self._signal["best_bid"]       = payload.get("bid")
+                                self._signal["best_ask"]       = payload.get("ask")
+                                self._signal["mid"]            = (payload.get("bid", 0) + payload.get("ask", 0)) / 2 if payload.get("bid") else 0
+                                self._signal["book_imbalance"] = payload.get("l1_imb", 0.0)
+                                self._signal["ts"] = time.time()
+                except zmq.Again:
                     pass
+
+                # 3. Periodic Heartbeat (Always runs even if no ZMQ messages)
+                if time.time() - self._last_hb > 2.0:
+                    n_bars = len(self._bar_buffer)
+                    # Update ts in shared state to satisfy Freqtrade Watchdog
+                    with self._lock:
+                        self._signal["ts"] = time.time()
+                        self._signal["n_bars"] = n_bars
+
+                    if n_bars < 50:
+                        # Send as shadow_selector so monitor updates UI
+                        self._diag_queue.put({
+                            "type": "shadow_selector",
+                            "data": {
+                                "model": "buffering",
+                                "reason": f"Accumulating bars ({n_bars}/50)",
+                                "final_alpha": 0.5, "prob_v1": 0.5, "prob_v2": 0.5,
+                                "wvf_z": 0.0, "cvd_div": 0, "hma_slope": 0.0,
+                                "ts": time.time()
+                            }
+                        })
+                    else:
+                        self._diag_queue.put({
+                            "type": "heartbeat",
+                            "ts": time.time(),
+                            "data": {"n_bars": n_bars, "status": "active"}
+                        })
+                    self._last_hb = time.time()
+
+                # 4. Drain Diagnostics Queue
+                while not self._diag_queue.empty():
+                    try:
+                        diag = self._diag_queue.get_nowait()
+                        diag_sock.send_multipart(
+                            [b"DIAGNOSTICS", json.dumps(diag, default=str).encode()],
+                            flags=zmq.NOBLOCK,
+                        )
+                    except Exception:
+                        pass
+                
+                time.sleep(0.1)  # Prevent CPU spiking in no-message loop
+
+            except Exception as e:
+                logger.error("ZMQ loop error: %s", e)
+                time.sleep(1)
 
         sock.close()
         ctx.term()
@@ -1223,8 +1258,9 @@ class InstitutionalDollarStrategy(IStrategy):
             logger.debug("[D-06] Position reconciliation skipped: %s", e)
 
         # DESIGN-04 FIX: Watchdog — alert if signal is stale (ZMQ listener may be dead)
-        sig_age = time.time() - sig.get("ts", 0)
         now = time.time()
+        sig_ts = sig.get("ts", 0)
+        sig_age = now - sig_ts if sig_ts > 0 else 0
         
         # 1. Warmup / Boot timeout
         if sig.get("n_bars", 0) == 0 and (now - self._boot_time > 600):

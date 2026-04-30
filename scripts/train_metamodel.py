@@ -27,7 +27,7 @@ def train_metamodel(data_path, output_model_path):
 
     # Features for the Meta-model (context-aware)
     features = [
-        "alpha_prob", "alpha_prob_smooth", "alpha_prob_zscore", "alpha_prob_percentile",
+        "alpha_prob_oof", "alpha_prob_smooth", "alpha_prob_zscore", "alpha_prob_percentile",
         "alpha_signal_persistence", "turbulence_score", "turbulence_percentile",
         "hmm_state", "volatility_24_feature", "aggressor_ratio", "l2_imbalance_feature",
         "spread_bps", "expected_cost_bps"

@@ -1,9 +1,9 @@
 #!/bin/bash
 # scripts/launch_shadow_stack.sh
-# Kill existing
-pkill -9 -f freqtrade || true
-pkill -9 -f market_data_daemon || true
-pkill -9 -f monitor_shadow_selector || true
+# Kill existing surgically (avoid killing Antigravity which has 'freqtrade' in path)
+pkill -9 -f "/home/nosferatu/anaconda3/envs/freqtrade/bin/freqtrade trade" || true
+pkill -9 -f "services/market_data_daemon.py" || true
+pkill -9 -f "scripts/monitor_shadow_selector.py" || true
 
 # Start Daemon
 nohup /home/nosferatu/anaconda3/envs/freqtrade/bin/python services/market_data_daemon.py > logs/daemon.log 2>&1 &

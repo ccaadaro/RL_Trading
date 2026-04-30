@@ -58,7 +58,7 @@ def purged_walk_forward(df, features, folds=5, purge_pct=0.01, sample_weights=No
     n_samples = len(df)
     fold_size = int(n_samples / folds)
     embargo_size = int(n_samples * purge_pct)
-    oof_preds = np.full(n_samples, np.nan, dtype=float)
+    alpha_probs = np.full(n_samples, np.nan, dtype=float)
     scores = []
     for i in range(1, folds):
         val_start = i * fold_size
@@ -80,11 +80,11 @@ def purged_walk_forward(df, features, folds=5, purge_pct=0.01, sample_weights=No
             fit_kwargs["sample_weight"] = sample_weights[train_idx]
         model.fit(X_train, y_train, **fit_kwargs)
         preds = model.predict_proba(X_val)[:, 1]
-        oof_preds[val_idx] = preds
+        alpha_probs[val_idx] = preds
         auc = roc_auc_score(y_val, preds)
         print(f"Fold {i} | AUC: {auc:.4f}")
         scores.append(auc)
-    return oof_preds, np.mean(scores)
+    return alpha_probs, np.mean(scores)
 
 def main():
     data_path = "cache/dollar_bars_btc_2000000_features.feather"
@@ -111,7 +111,7 @@ def main():
     sample_weights = compute_uniqueness_weights(df) * compute_recency_weights(df)
     sample_weights *= len(df) / sample_weights.sum()
     
-    oof_preds, avg_auc = purged_walk_forward(df, features, sample_weights=sample_weights)
+    alpha_probs, avg_auc = purged_walk_forward(df, features, sample_weights=sample_weights)
     print(f"Avg AUC: {avg_auc:.4f}")
     
     final_model = lgb.LGBMClassifier(**LGB_PARAMS)

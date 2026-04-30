@@ -87,7 +87,7 @@ def run_ablation():
         if not features: continue
         print(f"\n--- Testing Block: {name} ({len(features)} features) ---")
         
-        oof_preds = np.full(n_samples, 0.5)
+        alpha_probs = np.full(n_samples, 0.5)
         
         for i in range(1, folds):
             print(f"  Fold {i}/{folds-1}...")
@@ -106,12 +106,12 @@ def run_ablation():
             model.fit(X_train, y_train, eval_set=[(X_val, y_val)], 
                       callbacks=[lgb.early_stopping(20, verbose=False)])
             
-            oof_preds[val_idx] = model.predict_proba(X_val)[:, 1]
+            alpha_probs[val_idx] = model.predict_proba(X_val)[:, 1]
             
         # Metrics on the OOS part (folds 1 and 2)
         oos_idx = np.arange(fold_size, n_samples)
         y_oos = df.iloc[oos_idx]["binary_target"]
-        p_oos = oof_preds[oos_idx]
+        p_oos = alpha_probs[oos_idx]
         
         auc = roc_auc_score(y_oos, p_oos)
         brier = brier_score_loss(y_oos, p_oos)
