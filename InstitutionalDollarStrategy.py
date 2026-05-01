@@ -210,8 +210,7 @@ class InstitutionalSignalEngine(threading.Thread):
         log_close = np.log(close.clip(lower=1e-9))
         
         df_v2 = pd.DataFrame(index=df.index)
-        df_v2['date'] = df['date']
-        
+
         # Base 7
         df_v2['return_3_bars_feature'] = log_close.diff(3).fillna(0)
         df_v2['return_5_bars_feature'] = log_close.diff(5).fillna(0)
@@ -290,7 +289,7 @@ class InstitutionalSignalEngine(threading.Thread):
             # Feature engineering
             from utils.signal_features import build_feature_matrix, SIGNAL_FEAT_COLS_V2
             try:
-                X = build_feature_matrix(df.copy(), eth_df=None, funding_series=None)
+                X = build_feature_matrix(df, eth_df=None, funding_series=None)
             except Exception as e:
                 logger.warning("Feature engineering failed: %s", e, exc_info=True)
                 return
@@ -369,6 +368,8 @@ class InstitutionalSignalEngine(threading.Thread):
                     df_v2 = self._compute_v2_features(df)
                     latest_v2 = df_v2.iloc[-1]
                     
+                    prob_v1 = 0.5
+                    prob_v2 = 0.5
                     if is_stale or spread_bps > 15:
                         alpha_prob_final = 0.5
                         selected_model = "flat"
@@ -438,14 +439,10 @@ class InstitutionalSignalEngine(threading.Thread):
 
             # Turbulence (rolling adaptive threshold)
             risk_vec       = ["log_return_feature", "volatility_24_feature", "intraday_range_feature"]
-            available_risk = [c for c in risk_vec if c in X.columns]
+            available_risk = [c for c in risk_vec if c in df.columns]
             if len(available_risk) < 2:
+                logger.warning("Insufficient risk features (%s) — skipping pipeline", available_risk)
                 return
-
-            # Attach features back to df for turbulence / HMM
-            for col in available_risk + ["log_return_feature", "volatility_24_feature"]:
-                if col in X.columns:
-                    df[col] = X[col].values
 
             turb_series = self._turb.compute(df, available_risk)
             # D-05 FIX: NaN turbulence (first 1000-bar warmup) should NOT be filled with 0.
@@ -1113,8 +1110,8 @@ class InstitutionalDollarStrategy(IStrategy):
                 if last_ts > 1e11: last_ts /= 1000.0
                 age = time.time() - last_ts
                 # Historical bars are valid for turbulence baseline even if old.
-                # Only skip if data is absurdly stale (>30 days).
-                if age > 86400 * 30:
+                # Only skip if data is absurdly stale (>365 days).
+                if age > 86400 * 365:
                     logger.warning("Cache data is too stale (%.0fd old) — skipping seeding.", age / 86400)
                     return
                 logger.info("Cache age: %.1fh", age / 3600)
