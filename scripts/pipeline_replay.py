@@ -193,7 +193,7 @@ class PipelineReplay:
 
         # Alpha
         preds = self.alpha.predict(X)
-        df_buffer["oof_pred"] = pd.Series(preds).fillna(0.5).clip(0.0, 1.0).values[:len(df_buffer)]
+        df_buffer["alpha_prob"] = pd.Series(preds).fillna(0.5).clip(0.0, 1.0).values[:len(df_buffer)]
 
         # Turbulence
         risk_vec = ["log_return_feature", "volatility_24_feature", "intraday_range_feature"]
@@ -243,7 +243,7 @@ class PipelineReplay:
 
         # Kelly sizing
         raw_target_pos = self.sizer.size_portfolio(
-            probabilities=df_buffer["oof_pred"],
+            probabilities=df_buffer["alpha_prob"],
             regimes=df_buffer["hmm_semantic_regime"],
             turbulence=df_buffer["turbulence_score"],
             adaptive_threshold=adaptive_thr,
@@ -252,7 +252,7 @@ class PipelineReplay:
         ).iloc[-1]
 
         # Confidence scaling
-        last_oof = float(last["oof_pred"])
+        last_oof = float(last["alpha_prob"])
         confidence_scale = min(1.0, (2.0 * abs(last_oof - 0.5)) / 0.15)
         raw_target_pos = float(raw_target_pos) * confidence_scale
 
@@ -336,7 +336,7 @@ class PipelineReplay:
                 self.pending_regime in _bull_targets
                 or self.committed_regime in _bull_targets
             )
-            _hold_alpha_ok = float(last["oof_pred"]) >= 0.45
+            _hold_alpha_ok = float(last["alpha_prob"]) >= 0.45
             if _hold_regime_ok and _hold_alpha_ok:
                 if raw_target_pos < 0.10:
                     raw_target_pos = 0.10
@@ -346,7 +346,7 @@ class PipelineReplay:
 
         bypass_regimes = _BYPASS_REGIMES_NEW if self.use_new else _BYPASS_REGIMES_OLD
         if (is_event
-                and float(last["oof_pred"]) >= 0.65
+                and float(last["alpha_prob"]) >= 0.65
                 and _turb_ok
                 and _imbalance_ok
                 and self.pending_regime in bypass_regimes
@@ -375,7 +375,7 @@ class PipelineReplay:
 
         return {
             "close": float(last["close"]),
-            "alpha": float(last["oof_pred"]),
+            "alpha": float(last["alpha_prob"]),
             "regime_raw": current_regime if 'current_regime_raw' not in dir() else current_regime_raw,
             "regime_committed": current_regime,
             "pending_regime": self.pending_regime,
@@ -498,7 +498,7 @@ def print_summary(results: pd.DataFrame, label: str = ""):
         print(f"  {regime:25s}: {count:>6,} ({pct:5.1f}%)")
 
     # Alpha stats
-    print(f"\nAlpha (oof_pred) stats:")
+    print(f"\nAlpha (alpha_prob) stats:")
     print(f"  Mean: {results['alpha'].mean():.4f}")
     print(f"  >0.55: {(results['alpha'] > 0.55).sum():,} ({(results['alpha'] > 0.55).mean()*100:.1f}%)")
     print(f"  >0.60: {(results['alpha'] > 0.60).sum():,} ({(results['alpha'] > 0.60).mean()*100:.1f}%)")

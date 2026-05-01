@@ -106,29 +106,29 @@ def main():
     df = feather.read_feather(args.data)
     
     # Preserve real OOF predictions if they were persisted by train_dollar_alpha.py.
-    if "oof_pred" in df.columns:
+    if "alpha_prob" in df.columns:
         if "oof_valid" not in df.columns:
-            df["oof_valid"] = df["oof_pred"].notna()
+            df["oof_valid"] = df["alpha_prob"].notna()
         if "oof_source" not in df.columns:
             df["oof_source"] = np.where(df["oof_valid"], "persisted_oof", "unknown")
-        print(f"Using persisted oof_pred column ({int(df['oof_valid'].sum()):,} valid rows).")
+        print(f"Using persisted alpha_prob column ({int(df['oof_valid'].sum()):,} valid rows).")
 
     # If no OOF is present, keep compatibility by attaching a clearly-marked
     # in-sample fallback, but never pretend it is valid for statistical gating.
     model_path = Path("models/dollar_alpha_v1/latest_model.txt")
-    if "oof_pred" not in df.columns and model_path.exists():
+    if "alpha_prob" not in df.columns and model_path.exists():
         print(f"Generating in-sample fallback probabilities from {model_path}...")
         model = lgb.Booster(model_file=str(model_path))
         features = [c for c in df.columns if c.endswith("_feature")]
         preds = model.predict(df[features])
-        df["oof_pred"] = preds
+        df["alpha_prob"] = preds
         df["oof_valid"] = False
         df["oof_source"] = "final_model_in_sample_fallback"
         print("Warning: using final-model predictions as fallback only; "
               "validate_pipeline.py will reject them as non-OOF.")
-    elif "oof_pred" not in df.columns:
-        print("Warning: Alpha Specialist model not found. oof_pred left unavailable.")
-        df["oof_pred"] = np.nan
+    elif "alpha_prob" not in df.columns:
+        print("Warning: Alpha Specialist model not found. alpha_prob left unavailable.")
+        df["alpha_prob"] = np.nan
         df["oof_valid"] = False
         df["oof_source"] = "missing"
         

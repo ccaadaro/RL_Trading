@@ -91,8 +91,8 @@ def run_backtest():
 
     if regimes_path.exists():
         df_reg = pd.read_feather(str(regimes_path)).set_index("date") if "date" in pd.read_feather(str(regimes_path)).columns else pd.read_feather(str(regimes_path))
-        if "oof_pred" in df_reg.columns and "oof_valid" in df_reg.columns:
-            oof_aligned = df_reg["oof_pred"].reindex(df_bars.index)
+        if "alpha_prob" in df_reg.columns and "oof_valid" in df_reg.columns:
+            oof_aligned = df_reg["alpha_prob"].reindex(df_bars.index)
             oof_valid   = df_reg["oof_valid"].reindex(df_bars.index).fillna(False)
             if oof_aligned.notna().sum() > 0:
                 df_bars["pred"]      = oof_aligned

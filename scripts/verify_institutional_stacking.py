@@ -38,7 +38,7 @@ def run_stacked_verification(df_path, fast_model_path, slow_model_path):
     # 1. Compute Fast Preds
     feat_fast = fast_model.feature_name()
     X_fast = df[feat_fast].fillna(0.0)
-    df["oof_pred_fast"] = fast_model.predict(X_fast)
+    df["alpha_prob_fast"] = fast_model.predict(X_fast)
     
     # 2. Compute Slow Preds
     slow_models = slow_data.get("models", {})
@@ -59,16 +59,16 @@ def run_stacked_verification(df_path, fast_model_path, slow_model_path):
         total_w += w
     
     if total_w > 0:
-        df["oof_pred_slow"] = 1.0 / (1.0 + np.exp(-logits / total_w))
+        df["alpha_prob_slow"] = 1.0 / (1.0 + np.exp(-logits / total_w))
     else:
-        df["oof_pred_slow"] = 0.5
+        df["alpha_prob_slow"] = 0.5
 
     # 3. Apply Stacking Logic
     # Consensus Gate: agreement between fast and slow
-    is_bull = (df["oof_pred_slow"] > 0.51) & (df["oof_pred_fast"] > 0.51)
-    is_bear = (df["oof_pred_slow"] < 0.49) & (df["oof_pred_fast"] < 0.49)
-    df["oof_pred_stacked"] = 0.5
-    df.loc[is_bull | is_bear, "oof_pred_stacked"] = df["oof_pred_fast"]
+    is_bull = (df["alpha_prob_slow"] > 0.51) & (df["alpha_prob_fast"] > 0.51)
+    is_bear = (df["alpha_prob_slow"] < 0.49) & (df["alpha_prob_fast"] < 0.49)
+    df["alpha_prob_stacked"] = 0.5
+    df.loc[is_bull | is_bear, "alpha_prob_stacked"] = df["alpha_prob_fast"]
     
     # 4. Run Vectorized Replay
     # We'll compare: Fast-Only vs Stacked
@@ -109,8 +109,8 @@ def run_stacked_verification(df_path, fast_model_path, slow_model_path):
         
         return len(trades), win_rate, net_pnl
 
-    c_fast, wr_fast, pnl_fast = simulate("oof_pred_fast")
-    c_stack, wr_stack, pnl_stack = simulate("oof_pred_stacked")
+    c_fast, wr_fast, pnl_fast = simulate("alpha_prob_fast")
+    c_stack, wr_stack, pnl_stack = simulate("alpha_prob_stacked")
     
     print("\n" + "="*50)
     print(f"{'Mode':<15} | {'#Tr':<5} | {'WR':<7} | {'TotalNet':<10}")

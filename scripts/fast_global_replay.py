@@ -40,7 +40,7 @@ def fast_replay(df, use_new_logic=True):
     
     # Extract numpy arrays
     close = df["close"].values.astype(float)
-    oof_pred = df["oof_pred"].values.astype(float)
+    alpha_prob = df["alpha_prob"].values.astype(float)
     turb = df["turbulence_score"].values.astype(float)
     log_ret = df["log_return_feature"].values.astype(float)
     hmm_regime = df["hmm_semantic_regime"].values
@@ -51,7 +51,7 @@ def fast_replay(df, use_new_logic=True):
     adaptive_thr = turb_series.expanding(100).quantile(0.95).fillna(5.0).values
     
     # Pre-calculate Daily Volatility
-    daily_vol = pd.Series(log_ret).rolling(288, min_periods=50).std().values * np.sqrt(288)
+    daily_vol = pd.Series(log_ret).rolling(288, min_periods=20).std().values * np.sqrt(288)
     daily_vol = np.nan_to_num(daily_vol, nan=0.02)
     barrier_heights = np.maximum(0.003, 1.5 * daily_vol)
 
@@ -67,7 +67,7 @@ def fast_replay(df, use_new_logic=True):
     sizer = FractionalKellySizer(kelly_fraction=0.5, max_drawdown=0.10, min_risk_scale=1.0)
     
     # Kelly Base per bar
-    probs = np.clip(oof_pred, 0.0, 1.0)
+    probs = np.clip(alpha_prob, 0.0, 1.0)
     edge = 2.0 * probs - 1.0
     gross = edge * barrier_heights
     net_return = np.sign(gross) * np.maximum(np.abs(gross) - sizer.round_trip_cost_rate, 0.0)
@@ -158,7 +158,7 @@ def fast_replay(df, use_new_logic=True):
         raw_target_pos = kelly_base[i] * sizer.c_kelly * f_max * g_penalties[i]
         
         # Confidence scale (relaxed)
-        conf = min(1.0, (2.0 * abs(oof_pred[i] - 0.5)) / 0.10)
+        conf = min(1.0, (2.0 * abs(alpha_prob[i] - 0.5)) / 0.10)
         raw_target_pos *= conf
         
         # HTF
@@ -183,13 +183,13 @@ def fast_replay(df, use_new_logic=True):
         
         if use_new_logic and bypass_hold_bars > 0:
             _bull = {"bull_calm", "bull_neutral", "high_vol_rebound"}
-            if (pending_regime in _bull or committed_regime in _bull) and oof_pred[i] >= 0.45:
+            if (pending_regime in _bull or committed_regime in _bull) and alpha_prob[i] >= 0.45:
                 if raw_target_pos < 0.10: raw_target_pos = 0.10
                 bypass_hold_bars -= 1
             else:
                 bypass_hold_bars = 0
                 
-        if oof_pred[i] >= 0.65 and _turb_ok and _imb_ok and pending_regime in bypass_regimes and raw_target_pos < 0.10:
+        if alpha_prob[i] >= 0.65 and _turb_ok and _imb_ok and pending_regime in bypass_regimes and raw_target_pos < 0.10:
             raw_target_pos = 0.10
             bypass_applied = True
             if use_new_logic:
@@ -211,7 +211,7 @@ def fast_replay(df, use_new_logic=True):
                 "bar_idx": i,
                 "timestamp": ts_array[i],
                 "close": close[i],
-                "alpha": oof_pred[i],
+                "alpha": alpha_prob[i],
                 "regime_committed": committed_regime,
                 "target_pos": current_target_pos,
                 "bypass": bypass_applied

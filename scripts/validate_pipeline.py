@@ -248,16 +248,16 @@ def main():
     print(f"\nLoading {args.data}...")
     df = feather.read_feather(args.data)
 
-    if "oof_pred" not in df.columns or "label" not in df.columns:
-        print("ABORT: Need 'oof_pred' and 'label' columns. Run build_regime_labels.py first.")
+    if "alpha_prob" not in df.columns or "label" not in df.columns:
+        print("ABORT: Need 'alpha_prob' and 'label' columns. Run build_regime_labels.py first.")
         return
 
     # Use only rows explicitly marked as valid OOF predictions.
     if "oof_valid" in df.columns:
-        valid_mask = df["oof_valid"].astype(bool) & df["oof_pred"].notna()
+        valid_mask = df["oof_valid"].astype(bool) & df["alpha_prob"].notna()
     else:
-        valid_mask = df["oof_pred"].notna()
-        print("WARN: oof_valid column missing. Falling back to non-null oof_pred rows only.")
+        valid_mask = df["alpha_prob"].notna()
+        print("WARN: oof_valid column missing. Falling back to non-null alpha_prob rows only.")
     df_val = df[valid_mask].copy()
     if df_val.empty:
         print("ABORT: No valid OOF rows found. Run train_dollar_alpha.py so OOFs are persisted first.")
@@ -275,11 +275,11 @@ def main():
     results = {}
 
     # --- 1. Calibration ---
-    results.update(check_calibration(df_val["binary_target"].values, df_val["oof_pred"].values))
+    results.update(check_calibration(df_val["binary_target"].values, df_val["alpha_prob"].values))
 
     # --- 2. Compute proxy Sharpe from OOS predictions using event-return geometry ---
     # Use confidence-scaled direction times the event's implied barrier return.
-    signals = np.clip(2 * df_val["oof_pred"].to_numpy() - 1.0, -1.0, 1.0)
+    signals = np.clip(2 * df_val["alpha_prob"].to_numpy() - 1.0, -1.0, 1.0)
     event_returns = derive_event_return_proxy(df_val, mode=args.dsr_return_mode)
     pnl_proxy = pd.Series(signals * event_returns)
     events_per_year = args.events_per_year or infer_events_per_year(df_val)

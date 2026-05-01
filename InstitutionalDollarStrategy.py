@@ -55,6 +55,7 @@ for _p in [str(_RL_DIR), str(_RL_DIR.parent)]:
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+import pandas_ta as ta
 
 try:
     import zmq
@@ -69,6 +70,7 @@ from utils.signal_features import compute_ohlcv_features
 from utils.risk_directors  import MahalanobisTurbulence, HMMRegimeModel
 from utils.position_sizer  import FractionalKellySizer
 from utils.filters         import SymmetricCUSUMFilter
+from utils.data_providers  import MarketDataProvider, ZmqDollarBarProvider, FreqtradeCandleProvider
 
 logger = logging.getLogger(__name__)
 
@@ -79,31 +81,34 @@ ZMQ_DAEMON_ADDR   = "tcp://127.0.0.1:5555"
 ZMQ_DIAG_ADDR     = "tcp://127.0.0.1:5556"   # Dashboard diagnostics PUB
 
 # Minimum Dollar Bars in the rolling buffer before running inference
-# Lowered to 20: enough for RSI/vol warmup while keeping cold-start fast.
-MIN_BARS_FOR_INFERENCE = 20
+# Raised to 50 to satisfy min_periods in volatility calculations.
+MIN_BARS_FOR_INFERENCE = 50
 
 
-class _ZmqListener(threading.Thread):
+class InstitutionalSignalEngine(threading.Thread):
     """
-    Background daemon thread that subscribes to the ZMQ PUB socket and drives
-    the full intelligence pipeline (features → LightGBM → HMM → sizing) each
-    time a completed Dollar Bar arrives.  Results are written atomically into
-    a shared signal dict protected by a threading.Lock.
+    Background daemon thread that drives the full intelligence pipeline
+    (features → LightGBM → HMM → sizing) using a MarketDataProvider.
+    Results are written atomically into a shared signal dict.
     """
 
-    def __init__(self, alpha_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
+    def __init__(self, alpha_model, meta_model, alpha_slow_model, turbulence_engine, hmm_model, hmm_model_htf, sizer,
                  signal_store: dict, lock: threading.Lock,
-                 zmq_addr: str = ZMQ_DAEMON_ADDR):
-        super().__init__(daemon=True, name="ZmqDollarBarListener")
+                 provider: MarketDataProvider):
+        super().__init__(daemon=True, name="InstitutionalSignalEngine")
         self._alpha         = alpha_model
+        self._meta          = meta_model
+        self._alpha_slow    = alpha_slow_model
         self._turb          = turbulence_engine
+        self._WINDOW_DAILY  = 1000  # Default daily window for $2M Dollar Bars
         self._hmm           = hmm_model
         self._hmm_htf       = hmm_model_htf   # 1-hour timeframe HMM
         self._sizer         = sizer
         self._signal        = signal_store
         self._lock          = lock
-        self._zmq_addr      = zmq_addr
-        self._bar_buffer: list[dict] = []
+        self._provider      = provider
+        self._zmq_addr      = ZMQ_DAEMON_ADDR
+        self._topic         = TOPIC_DOLLAR_BAR
         self._running       = True
 
         # Clock Decoupling State
@@ -137,11 +142,31 @@ class _ZmqListener(threading.Thread):
         # BUG #23 FIX: Coalescing state
         self._pipeline_inflight = False
         self._inflight_since = 0.0
-        self._executor: Optional[ThreadPoolExecutor] = None
         self._last_t_processed = 0.0
+        # Sync with provider buffer if possible
+        self._bar_buffer = getattr(provider, "_bar_buffer", [])
+        self._executor = ThreadPoolExecutor(max_workers=1)
 
         # Dashboard diagnostics: fire-and-forget queue (thread-safe)
         self._diag_queue: queue.SimpleQueue = queue.SimpleQueue()
+        self._last_hb = 0.0
+
+        # Institutional Stats Monitoring (Shadow-Live)
+        self._stats = {
+            "n_inferences": 0,
+            "alpha_probs": [],
+            "meta_probs": [],
+            "spreads": [],
+            "costs": [],
+            "veto_count": 0,
+            "entry_count": 0,
+            "reasons": {},
+            "shadow_stats": [] # For detailed telemetry
+        }
+        
+        self.shadow_selector_enabled = False
+        self._alpha_v1 = None
+        self._alpha_v2 = None
 
 
     def set_virtual_position(self, pos: float):
@@ -155,21 +180,116 @@ class _ZmqListener(threading.Thread):
             # BUG-Shutdown FIX: non-waiting shutdown
             self._executor.shutdown(wait=False)
 
+    def _log_summary_stats(self):
+        """Institutional Summary Log (Shadow-Live Audit)"""
+        s = self._stats
+        if s["n_inferences"] == 0: return
+        
+        alpha_arr = np.array(s["alpha_probs"])
+        meta_arr  = np.array(s["meta_probs"])
+        
+        logger.info(
+            "\n" + "="*60 + "\n"
+            f"[SHADOW-LIVE SUMMARY] Bars: {s['n_inferences']}\n"
+            f"Alpha Prob: Mean={np.mean(alpha_arr):.3f} | P10={np.percentile(alpha_arr, 10):.3f} | P50={np.median(alpha_arr):.3f} | P90={np.percentile(alpha_arr, 90):.3f}\n"
+            f"Meta Prob:  Mean={np.mean(meta_arr):.3f}  | P10={np.percentile(meta_arr, 10):.3f}  | P50={np.median(meta_arr):.3f}  | P90={np.percentile(meta_arr, 90):.3f}\n"
+            f"Veto Rate:  {(s['veto_count']/s['n_inferences'])*100:.1f}% | Entry Rate: {(s['entry_count']/s['n_inferences'])*100:.1f}%\n"
+            f"Spreads:    Mean={np.mean(s['spreads']):.1f} bps | Costs: Mean={np.mean(s['costs']):.1f} bps\n"
+            f"Veto Reasons: {s['reasons']}\n"
+            + "="*60
+        )
+        # Clear rolling window to avoid memory leak over days, but keep counts
+        s["alpha_probs"] = []
+        s["meta_probs"] = []
+        s["spreads"] = []
+        s["costs"] = []
+
+    def _compute_v2_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Isolated computation of the 10 features used by v1/v2 specialists."""
+        close = df['close'].astype(float)
+        log_close = np.log(close.clip(lower=1e-9))
+        
+        df_v2 = pd.DataFrame(index=df.index)
+
+        # Base 7
+        df_v2['return_3_bars_feature'] = log_close.diff(3).fillna(0)
+        df_v2['return_5_bars_feature'] = log_close.diff(5).fillna(0)
+        df_v2['vol_10_feature'] = log_close.diff().rolling(10).std().fillna(0)
+        
+        buy_vol = df.get('buy_volume', df.get('buy_vol', 0)).astype(float)
+        sell_vol = df.get('sell_volume', df.get('sell_vol', 0)).astype(float)
+        cvd = (buy_vol - sell_vol).cumsum()
+        df_v2['cvd_slope_feature'] = cvd.diff(10).fillna(0) / 10
+        
+        df_v2['aggressor_imbalance_feature'] = ((buy_vol - sell_vol) / 
+                                               (buy_vol + sell_vol).clip(lower=1e-9)).fillna(0)
+        
+        hma20 = ta.hma(close, 20)
+        df_v2['hma_dist_feature'] = (close / hma20 - 1).fillna(0)
+        
+        # WVF Z-Score
+        length, sma_len = 22, 20
+        highest_close = close.rolling(length).max()
+        wvf = (highest_close - df['low']) / highest_close * 100
+        wvf_sma = wvf.rolling(sma_len).mean()
+        wvf_std = wvf.rolling(sma_len).std()
+        df_v2['wvf_zscore_feature'] = ((wvf - wvf_sma) / wvf_std.clip(lower=1e-9)).fillna(0)
+        
+        # Second-Order
+        price_slope = close.diff(10).fillna(0) / 10
+        df_v2['cvd_divergence_feature'] = (np.sign(price_slope) != np.sign(df_v2['cvd_slope_feature'])).astype(float)
+        df_v2['hma_slope_feature'] = hma20.diff(5).fillna(0) / 5
+        df_v2['vol_accel_feature'] = df_v2['vol_10_feature'].diff(5).fillna(0)
+        
+        return df_v2
+
+    def select_shadow_model(self, prob_v1, prob_v2, features_row, threshold=0.55):
+        """Regime-aware selector for Shadow-Live auditing."""
+        wvf_z = features_row.get("wvf_zscore_feature", 0.0)
+        cvd_div = features_row.get("cvd_divergence_feature", 0)
+
+        # Priority 1: Panic Rebound (v2 is better at catching crashes in 2025)
+        if wvf_z > 1.5:
+            return prob_v2, "v2", "panic_rebound_wvf"
+
+        # Priority 2: CVD Absorption (v2 detects order flow traps)
+        if cvd_div == 1:
+            return prob_v2, "v2", "cvd_absorption"
+
+        # Priority 3: Dual Confirmation (Consensus)
+        if prob_v1 > threshold and prob_v2 > threshold:
+            return min(prob_v1, prob_v2), "consensus", "dual_confirmation"
+
+        # Default: No edge regime
+        return 0.5, "flat", "no_regime_edge"
+
     def _run_pipeline(self):
         """Converts bar buffer → features → alpha → regime → sizing."""
         try:
-            with self._lock:
-                buffer_copy = list(self._bar_buffer[-2000:])
-                
-            if len(buffer_copy) < MIN_BARS_FOR_INFERENCE:
+            if not self._provider.is_ready():
                 return
 
-            df = pd.DataFrame(buffer_copy).reset_index(drop=True)
+            df = self._provider.get_latest_data()
+            
+            # 2. Buffer Enforcement (Institutional Safety)
+            if len(df) < MIN_BARS_FOR_INFERENCE:
+                # HEARTBEAT during buffering
+                self._diag_queue.put({
+                    "type": "shadow_selector",
+                    "data": {
+                        "model": "buffering",
+                        "reason": f"Accumulating bars ({len(df)}/{MIN_BARS_FOR_INFERENCE})",
+                        "final_alpha": 0.5, "prob_v1": 0.5, "prob_v2": 0.5,
+                        "wvf_z": 0.0, "cvd_div": 0, "hma_slope": 0.0,
+                        "ts": time.time()
+                    }
+                })
+                return
 
             # Feature engineering
             from utils.signal_features import build_feature_matrix, SIGNAL_FEAT_COLS_V2
             try:
-                X = build_feature_matrix(df.copy(), eth_df=None, funding_series=None)
+                X = build_feature_matrix(df, eth_df=None, funding_series=None)
             except Exception as e:
                 logger.warning("Feature engineering failed: %s", e, exc_info=True)
                 return
@@ -183,7 +303,7 @@ class _ZmqListener(threading.Thread):
                 model_features = self._alpha.feature_name()
                 X_fast = X[model_features].fillna(0.0)
                 fast_preds = self._alpha.predict(X_fast)
-                df["oof_pred_fast"] = pd.Series(fast_preds).fillna(0.5).clip(0.0, 1.0)
+                df["alpha_prob_fast"] = pd.Series(fast_preds).fillna(0.5).clip(0.0, 1.0)
 
                 # 2. Slow Alpha (1h Ensemble Logic)
                 alpha_slow = 0.5
@@ -207,38 +327,122 @@ class _ZmqListener(threading.Thread):
                     if total_w > 0:
                         alpha_slow = 1.0 / (1.0 + np.exp(-logits / total_w))
                 
-                df["oof_pred_slow"] = alpha_slow
+                df["alpha_prob_slow"] = alpha_slow
                 
                 # 3. Stacked Prediction: Requirement of cross-timeframe agreement
-                last_fast = float(df["oof_pred_fast"].iloc[-1])
+                last_fast = float(df["alpha_prob_fast"].iloc[-1])
                 if abs(alpha_slow - 0.5) < 0.02: 
                     # If slow signal is neutral, we dampen the fast signal significantly
-                    df["oof_pred"] = 0.5 + (last_fast - 0.5) * 0.3
+                    df["alpha_prob"] = 0.5 + (last_fast - 0.5) * 0.3
                 else:
                     is_bull = (alpha_slow > 0.51) and (last_fast > 0.51)
                     is_bear = (alpha_slow < 0.49) and (last_fast < 0.49)
                     if not (is_bull or is_bear):
-                        df["oof_pred"] = 0.5 # kill signal
+                        df["alpha_prob"] = 0.5 # kill signal
                     else:
-                        df["oof_pred"] = last_fast
+                        df["alpha_prob"] = last_fast
 
             except Exception as e:
                 logger.warning("Combined Alpha inference failed: %s", e, exc_info=True)
                 return
-                # BUG #22 FIX: exc_info=True
-                logger.warning("LightGBM predict failed: %s", e, exc_info=True)
-                return
+
+            # --- PRE-SELECTOR SAFETY & COSTS ---
+            with self._lock:
+                l_sig = dict(self._signal)
+            
+            spread_bps = 0.0
+            mid = l_sig.get("mid", 0.0)
+            if l_sig.get("best_ask") and l_sig.get("best_bid") and mid > 0:
+                spread_bps = (l_sig["best_ask"] - l_sig["best_bid"]) / mid * 10000
+            
+            spread_bps = spread_bps if (spread_bps > 0 and mid > 0) else 100.0
+            expected_cost_bps = 5 + spread_bps + 2 # 5 fee + spread + 2 slippage
+            
+            # Latency Watchdog
+            data_age = time.time() - float(df.iloc[-1].get("ts", 0))
+            is_stale = data_age > 300 # 5 minutes
+
+            # --- SHADOW SELECTOR PATH ---
+            if self.shadow_selector_enabled and self._alpha_v1 and self._alpha_v2:
+                try:
+                    df_v2 = self._compute_v2_features(df)
+                    latest_v2 = df_v2.iloc[-1]
+                    
+                    prob_v1 = 0.5
+                    prob_v2 = 0.5
+                    if is_stale or spread_bps > 15:
+                        alpha_prob_final = 0.5
+                        selected_model = "flat"
+                        selector_reason = "stale_data" if is_stale else "toxic_spread"
+                    else:
+                        f_v1_names = ["return_3_bars_feature", "return_5_bars_feature", "vol_10_feature", 
+                                      "cvd_slope_feature", "aggressor_imbalance_feature", "hma_dist_feature", "wvf_zscore_feature"]
+                        f_v2_names = f_v1_names + ["cvd_divergence_feature", "hma_slope_feature", "vol_accel_feature"]
+                        
+                        X_v1 = df_v2[f_v1_names].tail(1).fillna(0)
+                        X_v2 = df_v2[f_v2_names].tail(1).fillna(0)
+                        
+                        prob_v1 = float(self._alpha_v1.predict(X_v1)[0])
+                        prob_v2 = float(self._alpha_v2.predict(X_v2)[0])
+                        
+                        # Entry threshold from signal engine or strategy params
+                        thr = 0.55 
+                        
+                        alpha_prob_final, selected_model, selector_reason = self.select_shadow_model(
+                            prob_v1, prob_v2, latest_v2, threshold=thr
+                        )
+                    
+                    # TELEMETRY LOGGING
+                    telemetry = {
+                        "ts": time.time(),
+                        "prob_v1": prob_v1 if not (is_stale or spread_bps > 15) else 0.5,
+                        "prob_v2": prob_v2 if not (is_stale or spread_bps > 15) else 0.5,
+                        "final_alpha": alpha_prob_final,
+                        "model": selected_model,
+                        "reason": selector_reason,
+                        "wvf_z": float(latest_v2["wvf_zscore_feature"]),
+                        "cvd_div": int(latest_v2["cvd_divergence_feature"]),
+                        "hma_slope": float(latest_v2["hma_slope_feature"]),
+                        "spread_bps": spread_bps,
+                        "data_age": data_age
+                    }
+                    self._stats["shadow_stats"].append(telemetry)
+                    if len(self._stats["shadow_stats"]) > 1000: self._stats["shadow_stats"].pop(0)
+                    
+                    # BROADCAST TO DIAGNOSTICS (For monitor_shadow_selector.py)
+                    self._diag_queue.put({
+                        "type": "shadow_selector",
+                        "data": telemetry
+                    })
+                    
+                    logger.info("[SELECTOR] %s | Reason: %s | Alpha: %.3f (v1: %.3f, v2: %.3f)",
+                                selected_model, selector_reason, alpha_prob_final, prob_v1, prob_v2)
+                    
+                    # Update df for downstream Kelly/Sizer
+                    df["alpha_prob"] = alpha_prob_final
+                    
+                except Exception as e:
+                    logger.warning("Shadow selector failed: %s", e, exc_info=True)
+
+            # Meta-model "Gatekeeper" Features (Context-Aware)
+            try:
+                # 1. Feature Prep
+                alpha_probs = df["alpha_prob"]
+                df["alpha_prob_smooth"] = alpha_probs.ewm(span=10).mean()
+                df["alpha_prob_zscore"] = (alpha_probs - alpha_probs.rolling(200).mean()) / alpha_probs.rolling(200).std()
+                df["alpha_prob_percentile"] = alpha_probs.rolling(1000).rank(pct=True)
+                df["alpha_signal_persistence"] = (alpha_probs > 0.55).astype(int).rolling(20).sum()
+                
+                # We'll compute turbulence percentile later after full turb computation
+            except Exception as e:
+                logger.warning("Meta-feature prep failed: %s", e)
 
             # Turbulence (rolling adaptive threshold)
             risk_vec       = ["log_return_feature", "volatility_24_feature", "intraday_range_feature"]
-            available_risk = [c for c in risk_vec if c in X.columns]
+            available_risk = [c for c in risk_vec if c in df.columns]
             if len(available_risk) < 2:
+                logger.warning("Insufficient risk features (%s) — skipping pipeline", available_risk)
                 return
-
-            # Attach features back to df for turbulence / HMM
-            for col in available_risk + ["log_return_feature", "volatility_24_feature"]:
-                if col in X.columns:
-                    df[col] = X[col].values
 
             turb_series = self._turb.compute(df, available_risk)
             # D-05 FIX: NaN turbulence (first 1000-bar warmup) should NOT be filled with 0.
@@ -316,12 +520,13 @@ class _ZmqListener(threading.Thread):
             # T2.7 Daily Volatility for Barrier Scaling
             # Labels are pt=1.5 * daily_vol; Kelly must match this scale to overcome costs.
             log_ret = df["log_return_feature"]
-            daily_vol = log_ret.rolling(self._WINDOW_DAILY, min_periods=50).std() * np.sqrt(self._WINDOW_DAILY)
+            min_periods = min(50, self._WINDOW_DAILY)
+            daily_vol = log_ret.rolling(self._WINDOW_DAILY, min_periods=min_periods).std() * np.sqrt(self._WINDOW_DAILY)
             last_daily_vol = float(daily_vol.iloc[-1]) if not np.isnan(daily_vol.iloc[-1]) else 0.02
             barrier_height = max(0.003, 1.5 * last_daily_vol)
 
             raw_target_pos = self._sizer.size_portfolio(
-                probabilities=df["oof_pred"],
+                probabilities=df["alpha_prob"],
                 regimes=df["hmm_semantic_regime"],
                 turbulence=df["turbulence_score"],
                 adaptive_threshold=adaptive_thr,
@@ -345,7 +550,7 @@ class _ZmqListener(threading.Thread):
                 pass
 
             # T2.5-Phase 5: Stacking and Regime Hardening
-            last_oof = float(last["oof_pred"])
+            last_oof = float(last["alpha_prob"])
             
             # Kill-Switch 1: Regime Based
             # Total blackout in high-risk regimes for Longs
@@ -364,10 +569,83 @@ class _ZmqListener(threading.Thread):
             # Kill-Switch 3: Long-Only Filter
             if last_oof < 0.50:
                 raw_target_pos = 0.0
-                logger.info("[KILL-SWITCH] Long-Only Filter active (oof_pred < 0.50) -> Position zeroed")
+                logger.info("[KILL-SWITCH] Long-Only Filter active (alpha_prob < 0.50) -> Position zeroed")
 
             confidence_scale = min(1.0, (2.0 * abs(last_oof - 0.5)) / 0.10)
             raw_target_pos = float(raw_target_pos) * confidence_scale
+
+            # Kill-Switch 4: Meta-Model Gatekeeper (Tradeability)
+            meta_prob = 0.0
+            veto_reason = "none"
+            allow_trade = True
+            if self._meta:
+                try:
+                    # Capture latest book data for spread calculation
+                    # (already calculated above for selector safety)
+                    
+                    # Calculate final meta-features
+                    df["turbulence_percentile"] = df["turbulence_score"].rolling(2000).rank(pct=True)
+                    
+                    # Costs
+                    # (already calculated above for selector safety)
+                    
+                    # Get canonical HMM state ID (0, 1, 2)
+                    hmm_state_id = self._hmm.predict_current_state(df.tail(50))
+                    
+                    # Map names to match meta-model training script
+                    X_meta = pd.DataFrame([{
+                        "alpha_prob":              float(last_oof), # Raw probability
+                        "alpha_prob_smooth":       float(df["alpha_prob_smooth"].iloc[-1]),
+                        "alpha_prob_zscore":       float(df["alpha_prob_zscore"].iloc[-1]),
+                        "alpha_prob_percentile":   float(df["alpha_prob_percentile"].iloc[-1]),
+                        "alpha_signal_persistence": float(df["alpha_signal_persistence"].iloc[-1]),
+                        "turbulence_score":        float(df["turbulence_score"].iloc[-1]),
+                        "turbulence_percentile":   float(df["turbulence_percentile"].iloc[-1]),
+                        "hmm_state":               int(hmm_state_id),
+                        "volatility_24_feature":   float(df["volatility_24_feature"].iloc[-1]),
+                        "aggressor_ratio":         float(df["aggressor_ratio"].iloc[-1]) if "aggressor_ratio" in df.columns else 0.0,
+                        "l2_imbalance_feature":    float(X["l2_imbalance_feature"].iloc[-1]) if "l2_imbalance_feature" in X.columns else 0.0,
+                        "spread_bps":              float(spread_bps),
+                        "expected_cost_bps":       float(expected_cost_bps)
+                    }])
+                    
+                    meta_prob = self._meta.predict(X_meta)[0]
+                    
+                    # LOGGING EXHAUSTIVO (Per Inerence)
+                    if meta_prob < 0.60:
+                        raw_target_pos = 0.0
+                        allow_trade = False
+                        veto_reason = "low_meta_conviction"
+                        if expected_cost_bps > 25: veto_reason = "prohibitive_costs"
+                        elif spread_bps > 15: veto_reason = "toxic_spread"
+                        elif float(last_oof) < 0.55: veto_reason = "alpha_weakness"
+                    
+                    # Update Stats
+                    self._stats["n_inferences"] += 1
+                    self._stats["alpha_probs"].append(float(last_oof))
+                    self._stats["meta_probs"].append(float(meta_prob))
+                    self._stats["spreads"].append(float(spread_bps))
+                    self._stats["costs"].append(float(expected_cost_bps))
+                    if not allow_trade:
+                        self._stats["veto_count"] += 1
+                        self._stats["reasons"][veto_reason] = self._stats["reasons"].get(veto_reason, 0) + 1
+                    
+                    # Log Decisivo
+                    logger.info(
+                        "[SHADOW-LIVE] Inf #%d | Alpha=%.3f (Thr=0.55) | Meta=%.3f (Thr=0.60) | "
+                        "Allow=%s | VetoReason=%s | Regime=%s | Turb=%.2f | "
+                        "Spread=%.1f bps | Cost=%.1f bps | Pos: %.2f -> %.2f",
+                        self._stats["n_inferences"], float(last_oof), float(meta_prob),
+                        allow_trade, veto_reason, current_regime, float(last["turbulence_score"]),
+                        spread_bps, expected_cost_bps, self._current_target_pos, raw_target_pos
+                    )
+                    
+                    # Summary Every 100 bars
+                    if self._stats["n_inferences"] % 100 == 0:
+                        self._log_summary_stats()
+
+                except Exception as e:
+                    logger.warning("Meta-model inference failed: %s", e)
 
             # T2.5: Multi-TF regime filter — 1h aggregated HMM provides market context.
             # Acts as a soft multiplier on the LTF Kelly, not a hard gate.
@@ -501,19 +779,19 @@ class _ZmqListener(threading.Thread):
                     self._pending_regime in _bull_targets
                     or self._committed_regime in _bull_targets
                 )
-                _hold_alpha_ok = float(last["oof_pred"]) >= 0.45
+                _hold_alpha_ok = float(last["alpha_prob"]) >= 0.45
                 if _hold_regime_ok and _hold_alpha_ok:
                     if raw_target_pos < 0.10:
                         raw_target_pos = 0.10
                     self._bypass_hold_bars -= 1
                     logger.debug(
                         "[BYPASS HOLD] Flooring at 10%% — %d bars remaining (regime=%s alpha=%.3f)",
-                        self._bypass_hold_bars, self._committed_regime, float(last["oof_pred"]),
+                        self._bypass_hold_bars, self._committed_regime, float(last["alpha_prob"]),
                     )
                 else:
                     logger.info(
                         "[BYPASS HOLD] Cancelled — pending=%s committed=%s alpha=%.3f",
-                        self._pending_regime, self._committed_regime, float(last["oof_pred"]),
+                        self._pending_regime, self._committed_regime, float(last["alpha_prob"]),
                     )
                     self._bypass_hold_bars = 0
 
@@ -525,7 +803,7 @@ class _ZmqListener(threading.Thread):
             #   4. L1 book imbalance >= -0.20 (not heavily sell-side dominated)
             # This bridges the HMM lag on V-bottom entries in long-only mode.
             if (is_event
-                    and float(last["oof_pred"]) >= 0.65
+                    and float(last["alpha_prob"]) >= 0.65
                     and _turb_ok
                     and _imbalance_ok
                     and self._pending_regime in ("bull_calm", "bull_neutral", "high_vol_rebound")
@@ -535,7 +813,7 @@ class _ZmqListener(threading.Thread):
                 self._bypass_hold_bars = self._HYSTERESIS_TO_BULL  # sustain for N bars
                 logger.info(
                     "[ALPHA BYPASS] Pending %s + alpha=%.3f + turb=%.3f < thr=%.3f + imb=%+.3f → floor 10%% (hold=%d bars)",
-                    self._pending_regime, float(last["oof_pred"]),
+                    self._pending_regime, float(last["alpha_prob"]),
                     _turb_last, _thr_val if _thr_val is not None else float("inf"),
                     _bar_imbalance, self._bypass_hold_bars,
                 )
@@ -583,10 +861,12 @@ class _ZmqListener(threading.Thread):
                     "target_pos":   float(self._current_target_pos),
                     "regime":       str(last["hmm_semantic_regime"]),
                     "turbulence":   float(last["turbulence_score"]),
-                    "oof_pred":     float(last["oof_pred"]),
+                    "alpha_prob":     float(last["alpha_prob"]),
+                    "meta_prob":    float(meta_prob),
+                    "veto_reason":  str(veto_reason),
                     "close":        float(last["close"]),
                     "ts":           time.time(),
-                    "n_bars":       len(buffer_copy),
+                    "n_bars":       len(df),
                     "is_event":     is_event,
                     "atr14":        atr14,
                     "htf_regime":   htf_regime,
@@ -612,10 +892,10 @@ class _ZmqListener(threading.Thread):
                     "pending_regime_threshold": _hysteresis_needed if self._pending_regime else None,
                     "turbulence":           _sf(last["turbulence_score"], 0.0),
                     "turbulence_thr":       _thr,
-                    "oof_pred":             _sf(last["oof_pred"], 0.5),
+                    "alpha_prob":             _sf(last["alpha_prob"], 0.5),
                     "close":                _sf(last["close"]),
                     "ts":                   time.time(),
-                    "n_bars":               len(buffer_copy),
+                    "n_bars":               len(df),
                     "is_event":             is_event,
                     "cusum_pos_sum":        _sf(self._cusum._pos_sum, 0.0),
                     "cusum_neg_sum":        _sf(self._cusum._neg_sum, 0.0),
@@ -629,16 +909,20 @@ class _ZmqListener(threading.Thread):
                     "confidence_scale":     _sf(confidence_scale, 0.0),
                     "htf_regime":           htf_regime,
                     "htf_multiplier":       _sf(htf_mult, 0.5),
+                    "htf_floor":            _sf(htf_floor, 0.0),
                     "book_imbalance":       _sf(_bar_imbalance, 0.0),
+                    "meta_prob":            _sf(meta_prob, 0.0),
+                    "veto_reason":          str(veto_reason),
+                    "expected_cost_bps":    _sf(expected_cost_bps, 0.0),
                 })
             except Exception:
                 pass  # Never let diagnostics crash the pipeline
 
             logger.info(
                 "Pipeline OK | bar=%d close=%.2f alpha=%.3f regime=%s target_pos=%.4f (event=%s)",
-                len(buffer_copy),
+                len(df),
                 float(last["close"]),
-                float(last["oof_pred"]),
+                float(last["alpha_prob"]),
                 str(last["hmm_semantic_regime"]),
                 float(self._current_target_pos),
                 "YES" if is_event else "no",
@@ -664,66 +948,98 @@ class _ZmqListener(threading.Thread):
 
         diag_ctx = zmq.Context()
         diag_sock = diag_ctx.socket(zmq.PUB)
-        diag_sock.setsockopt(zmq.SNDHWM, 10)   # drop if no subscriber, never block
+        diag_sock.setsockopt(zmq.LINGER, 0)  # don't block on close
         diag_sock.bind(ZMQ_DIAG_ADDR)
 
-        self._executor = ThreadPoolExecutor(max_workers=1)
+        # self._executor is now initialized in __init__
 
         logger.info("ZMQ listener connected to %s | DIAG PUB at %s", self._zmq_addr, ZMQ_DIAG_ADDR)
 
         while self._running:
             try:
-                # BUG #23 FIX: Safety reset for inflight flag if stuck for >60s
+                # 1. Pipeline Stuck Safety
                 if self._pipeline_inflight and (time.time() - self._inflight_since > 60):
                     logger.warning("[SAFETY] Resetting stuck pipeline_inflight flag.")
                     self._pipeline_inflight = False
 
-                topic, payload_bytes = sock.recv_multipart()
-                payload = json.loads(payload_bytes.decode())
-
-                if topic == TOPIC_DOLLAR_BAR:
-                    self._bar_buffer.append(payload)
-                    if len(self._bar_buffer) > 4000:
-                        self._bar_buffer = self._bar_buffer[-2000:]
-
-                    # Update n_bars immediately so tests can track progress
-                    with self._lock:
-                        self._signal["n_bars"] = len(self._bar_buffer)
-
-                    # BUG #23 FIX: Coalescing — skip if a pipeline is already inflight.
-                    # This prevents the queue from growing during long HMM refits.
-                    if not self._pipeline_inflight:
-                        self._pipeline_inflight = True
-                        self._inflight_since = time.time()
-                        try:
-                            self._executor.submit(self._run_pipeline)
-                        except Exception as e:
-                            self._pipeline_inflight = False
-                            logger.warning("Failed to submit pipeline: %s", e)
-
-                elif topic == TOPIC_BOOK_TICKER:
-                    with self._lock:
-                        self._signal["best_bid"]       = payload.get("best_bid")
-                        self._signal["best_ask"]       = payload.get("best_ask")
-                        self._signal["mid"]            = payload.get("mid")
-                        self._signal["book_imbalance"] = payload.get("book_imbalance", 0.0)
-
-            except zmq.Again:
-                pass  # Timeout — just loop
-            except Exception as e:
-                logger.error("ZMQ recv error: %s", e)
-                time.sleep(1)
-
-            # Drain diagnostics queue and publish (fire-and-forget, never blocks)
-            while not self._diag_queue.empty():
+                # 2. Non-blocking Recv
                 try:
-                    diag = self._diag_queue.get_nowait()
-                    diag_sock.send_multipart(
-                        [b"DIAGNOSTICS", json.dumps(diag, default=str).encode()],
-                        flags=zmq.NOBLOCK,
-                    )
-                except Exception:
+                    parts = sock.recv_multipart(flags=zmq.NOBLOCK)
+                    if len(parts) >= 2:
+                        topic = parts[0]
+                        payload = json.loads(parts[1].decode())
+                        
+                        if topic == TOPIC_DOLLAR_BAR:
+                            self._bar_buffer.append(payload)
+                            if len(self._bar_buffer) > 4000:
+                                self._bar_buffer = self._bar_buffer[-2000:]
+                            with self._lock:
+                                self._signal["n_bars"] = len(self._bar_buffer)
+                                self._signal["ts"] = time.time()  # Keep Freqtrade Watchdog happy
+
+                            if not self._pipeline_inflight:
+                                self._pipeline_inflight = True
+                                self._inflight_since = time.time()
+                                try:
+                                    self._executor.submit(self._run_pipeline)
+                                except Exception as e:
+                                    self._pipeline_inflight = False
+                                    logger.warning("Failed to submit pipeline: %s", e)
+
+                        elif topic == TOPIC_BOOK_TICKER:
+                            with self._lock:
+                                self._signal["best_bid"]       = payload.get("bid")
+                                self._signal["best_ask"]       = payload.get("ask")
+                                self._signal["mid"]            = (payload.get("bid", 0) + payload.get("ask", 0)) / 2 if payload.get("bid") else 0
+                                self._signal["book_imbalance"] = payload.get("l1_imb", 0.0)
+                                self._signal["ts"] = time.time()
+                except zmq.Again:
                     pass
+
+                # 3. Periodic Heartbeat (Always runs even if no ZMQ messages)
+                if time.time() - self._last_hb > 2.0:
+                    n_bars = len(self._bar_buffer)
+                    # Update ts in shared state to satisfy Freqtrade Watchdog
+                    with self._lock:
+                        self._signal["ts"] = time.time()
+                        self._signal["n_bars"] = n_bars
+
+                    if n_bars < 50:
+                        # Send as shadow_selector so monitor updates UI
+                        self._diag_queue.put({
+                            "type": "shadow_selector",
+                            "data": {
+                                "model": "buffering",
+                                "reason": f"Accumulating bars ({n_bars}/50)",
+                                "final_alpha": 0.5, "prob_v1": 0.5, "prob_v2": 0.5,
+                                "wvf_z": 0.0, "cvd_div": 0, "hma_slope": 0.0,
+                                "ts": time.time()
+                            }
+                        })
+                    else:
+                        self._diag_queue.put({
+                            "type": "heartbeat",
+                            "ts": time.time(),
+                            "data": {"n_bars": n_bars, "status": "active"}
+                        })
+                    self._last_hb = time.time()
+
+                # 4. Drain Diagnostics Queue
+                while not self._diag_queue.empty():
+                    try:
+                        diag = self._diag_queue.get_nowait()
+                        diag_sock.send_multipart(
+                            [b"DIAGNOSTICS", json.dumps(diag, default=str).encode()],
+                            flags=zmq.NOBLOCK,
+                        )
+                    except Exception:
+                        pass
+                
+                time.sleep(0.1)  # Prevent CPU spiking in no-message loop
+
+            except Exception as e:
+                logger.error("ZMQ loop error: %s", e)
+                time.sleep(1)
 
         sock.close()
         ctx.term()
@@ -763,10 +1079,11 @@ class InstitutionalDollarStrategy(IStrategy):
         self._hmm              = None
         self._sizer            = None
         self._zmq_listener     = None
+        self._signal_engine    = None
         self._signal_lock      = threading.Lock()
         self._latest_signal    = {
             "target_pos": 0.0, "regime": "unknown", "turbulence": 0.0,
-            "oof_pred": 0.5, "close": None, "ts": 0.0,
+            "alpha_prob": 0.5, "close": None, "ts": 0.0,
             "best_bid": None, "best_ask": None, "mid": None, "n_bars": 0,
         }
         self._boot_time = time.time()
@@ -793,8 +1110,8 @@ class InstitutionalDollarStrategy(IStrategy):
                 if last_ts > 1e11: last_ts /= 1000.0
                 age = time.time() - last_ts
                 # Historical bars are valid for turbulence baseline even if old.
-                # Only skip if data is absurdly stale (>30 days).
-                if age > 86400 * 30:
+                # Only skip if data is absurdly stale (>365 days).
+                if age > 86400 * 365:
                     logger.warning("Cache data is too stale (%.0fd old) — skipping seeding.", age / 86400)
                     return
                 logger.info("Cache age: %.1fh", age / 3600)
@@ -821,69 +1138,108 @@ class InstitutionalDollarStrategy(IStrategy):
             ]
             existing = [c for c in priority_cols if c in df.columns]
             records = df[existing].to_dict(orient="records")
-            self._zmq_listener._bar_buffer = records
-
-            logger.info("Buffer seeded with %d bars from cache (%s)", len(records), cache_path.name)
+            # Seed 2000 bars into the provider if it's a ZMQ provider
+            if isinstance(self._provider, ZmqDollarBarProvider):
+                self._provider._bar_buffer = records
+                logger.info("Buffer seeded with %d bars from cache (%s)", len(records), cache_path.name)
         except Exception as e:
             logger.warning("Cache seeding failed: %s", e)
 
 
     def bot_start(self, **kwargs) -> None:
-        logger.info("[Phase 8] Booting Institutional Dollar Strategy (ZMQ subscriber mode)...")
+        logger.info("[BASELINE-V1] Booting Institutional Hardened Candidate (Shadow-Live mode)...")
 
-        # 1. Load Alpha Oracles (Fast + Slow)
-        model_path = _RL_DIR / "models" / "dollar_alpha_v1" / "latest_model.txt"
-        slow_path  = _RL_DIR / "models" / "signal_lgbm_v2_ensemble.pkl"
+        # 1. Load Frozen Assets from Deployment Path
+        deploy_path = _RL_DIR / "deployments" / "baseline_hardened_v1"
+        model_path = deploy_path / "alpha_model.txt"
+        meta_path  = deploy_path / "gatekeeper.txt"
         
         self._alpha_model = None
-        self._alpha_slow_model = None
-        
         if model_path.exists():
             self._alpha_model = lgb.Booster(model_file=str(model_path))
-            logger.info("Fast Alpha loaded: %s", model_path)
-        
-        if slow_path.exists():
-            import pickle
-            with open(slow_path, "rb") as f:
-                self._alpha_slow_model = pickle.load(f)
-            logger.info("Slow Alpha (Stacked) loaded: %s", slow_path)
+            logger.info("[BASELINE-V1] Alpha Model loaded from deployment: %s", model_path)
+        else:
+            logger.error("[BASELINE-V1] CRITICAL: Alpha model missing in %s", model_path)
 
+        self._meta_model = None
+        if meta_path.exists():
+            self._meta_model = lgb.Booster(model_file=str(meta_path))
+            logger.info("[BASELINE-V1] Meta-Gatekeeper loaded from deployment: %s", meta_path)
+        else:
+            logger.error("[BASELINE-V1] CRITICAL: Meta-model missing in %s", meta_path)
+
+        # 1.5 Shadow-Live Specialist Loading
+        shadow_path = _RL_DIR / "deployments" / "candidate_v2"
+        v1_path = shadow_path / "alpha_v1.txt"
+        v2_path = shadow_path / "alpha_v2.txt"
+        
+        alpha_v1, alpha_v2 = None, None
+        if v1_path.exists() and v2_path.exists():
+            alpha_v1 = lgb.Booster(model_file=str(v1_path))
+            alpha_v2 = lgb.Booster(model_file=str(v2_path))
+            logger.info("[SHADOW-LIVE] Specialist models v1/v2 loaded from %s", shadow_path)
+        
         # 2. Instantiate Risk Engines
         self._turbulence = MahalanobisTurbulence(window=1000, step=250)
         self._hmm        = HMMRegimeModel(n_components=3, n_init=3)
         self._hmm_htf    = HMMRegimeModel(n_components=3, n_init=3)
         self._sizer      = FractionalKellySizer(kelly_fraction=0.5, max_drawdown=0.10)
 
-        # 3. Start background ZMQ listener thread
-        self._zmq_listener = _ZmqListener(
+        # 3. Choose Data Provider
+        if self.timeframe == "1h":
+            logger.info("[PHASE 9] Using FreqtradeCandleProvider (1h candles)")
+            self._provider = FreqtradeCandleProvider()
+        else:
+            logger.info("[PHASE 8] Using ZmqDollarBarProvider (%s)", ZMQ_DAEMON_ADDR)
+            self._provider = ZmqDollarBarProvider(zmq_addr=ZMQ_DAEMON_ADDR, topic=TOPIC_DOLLAR_BAR)
+            # Only start the ZMQ thread if using ZMQ
+            self._provider.start()
+
+        # 4. Start background signal engine
+        self._signal_engine = InstitutionalSignalEngine(
             alpha_model=self._alpha_model,
-            alpha_slow_model=self._alpha_slow_model,
+            meta_model=self._meta_model,
+            alpha_slow_model=None, 
             turbulence_engine=self._turbulence,
             hmm_model=self._hmm,
             hmm_model_htf=self._hmm_htf,
             sizer=self._sizer,
             signal_store=self._latest_signal,
             lock=self._signal_lock,
+            provider=self._provider
         )
+        
+        # Activation of Shadow-Live features
+        self._signal_engine.shadow_selector_enabled = True
+        self._signal_engine._alpha_v1 = alpha_v1
+        self._signal_engine._alpha_v2 = alpha_v2
 
-        # 4. Pre-populate buffer SO seeding happens AFTER listener exists but BEFORE it starts
+        # 5. Pre-populate buffer SO seeding happens AFTER engine exists
         self._seed_buffer_from_cache()
 
-        # 5. Kick off the thread
-        self._zmq_listener.start()
-        logger.info("ZMQ listener thread started (daemon=%s)", ZMQ_DAEMON_ADDR)
+        # 6. Kick off the engine thread
+        self._signal_engine.start()
+        logger.info("Institutional Signal Engine started")
 
     def bot_stopped(self) -> None:
-        if self._zmq_listener:
-            self._zmq_listener.stop()
-            self._zmq_listener.join(timeout=3)
+        if self._signal_engine:
+            self._signal_engine.stop()
+            self._signal_engine.join(timeout=3)
+        if hasattr(self, "_provider") and isinstance(self._provider, ZmqDollarBarProvider):
+            self._provider.stop()
 
     def populate_indicators(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
         """
-        Thin shell: reads latest signal from the ZMQ listener thread and stamps
-        it onto every row of the 1m Freqtrade candle frame.
-        No computation happens here — just state propagation.
+        Thin shell: reads latest signal from the engine thread and stamps
+        it onto every row of the Freqtrade candle frame.
         """
+        # Phase 9: If using 1h candles, update the provider with the latest data
+        if isinstance(self._provider, FreqtradeCandleProvider):
+            self._provider.update(dataframe)
+            # Trigger immediate inference if possible
+            if not self._signal_engine._pipeline_inflight:
+                self._signal_engine._executor.submit(self._signal_engine._run_pipeline)
+
         with self._signal_lock:
             sig = dict(self._latest_signal)  # snapshot
 
@@ -897,8 +1253,9 @@ class InstitutionalDollarStrategy(IStrategy):
             logger.debug("[D-06] Position reconciliation skipped: %s", e)
 
         # DESIGN-04 FIX: Watchdog — alert if signal is stale (ZMQ listener may be dead)
-        sig_age = time.time() - sig.get("ts", 0)
         now = time.time()
+        sig_ts = sig.get("ts", 0)
+        sig_age = now - sig_ts if sig_ts > 0 else 0
         
         # 1. Warmup / Boot timeout
         if sig.get("n_bars", 0) == 0 and (now - self._boot_time > 600):
@@ -907,7 +1264,7 @@ class InstitutionalDollarStrategy(IStrategy):
                 self._last_watchdog_log_time = now
             # BUG #20 FIX: Ensure columns exist before early return
             for col, default in [("target_pos", 0.0), ("regime", "unknown"),
-                                 ("turbulence", 0.0), ("oof_pred", 0.5), ("n_bars", 0)]:
+                                 ("turbulence", 0.0), ("alpha_prob", 0.5), ("n_bars", 0)]:
                 dataframe[col] = default
             return dataframe
 
@@ -931,7 +1288,7 @@ class InstitutionalDollarStrategy(IStrategy):
         dataframe["target_pos"]  = sig.get("target_pos",  0.0)
         dataframe["regime"]      = sig.get("regime",      "unknown")
         dataframe["turbulence"]  = sig.get("turbulence",  0.0)
-        dataframe["oof_pred"]    = sig.get("oof_pred",    0.5)
+        dataframe["alpha_prob"]    = sig.get("alpha_prob",    0.5)
         dataframe["n_bars"]      = sig.get("n_bars",      0)
 
         return dataframe
@@ -950,7 +1307,7 @@ class InstitutionalDollarStrategy(IStrategy):
 
         This runs every ~1m (each populate_indicators cycle) — lightweight.
         """
-        if not self._zmq_listener:
+        if not self._signal_engine:
             return
 
         try:
@@ -972,7 +1329,7 @@ class InstitutionalDollarStrategy(IStrategy):
             except Exception:
                 return  # wallets not yet initialised
 
-        virtual_pos = self._zmq_listener._current_target_pos
+        virtual_pos = self._signal_engine._current_target_pos
         drift = abs(actual_exposure - virtual_pos)
 
         if drift > 0.03:  # 3% reconciliation threshold
@@ -980,7 +1337,7 @@ class InstitutionalDollarStrategy(IStrategy):
                 "[D-06] Position reconciliation: virtual=%.3f actual=%.3f drift=%.3f → syncing",
                 virtual_pos, actual_exposure, drift
             )
-            self._zmq_listener.set_virtual_position(actual_exposure)
+            self._signal_engine.set_virtual_position(actual_exposure)
 
 
     def populate_entry_trend(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
@@ -997,6 +1354,31 @@ class InstitutionalDollarStrategy(IStrategy):
         dataframe["exit_long"] = 0
         dataframe.loc[dataframe["target_pos"] <= 0.0, "exit_long"] = 1
         return dataframe
+
+    def custom_exit(self, pair: str, trade, current_time, current_rate: float,
+                    current_profit: float, **kwargs) -> Optional[str]:
+        """
+        Institutional Exit Audit: distinguishes between Alpha reversal and Meta-veto.
+        """
+        with self._signal_lock:
+            targ        = self._latest_signal.get("target_pos", 0.0)
+            veto_reason = self._latest_signal.get("veto_reason", "none")
+            alpha_prob  = self._latest_signal.get("alpha_prob", 0.5)
+            meta_prob   = self._latest_signal.get("meta_prob", 0.0)
+
+        if targ <= 0:
+            if veto_reason != "none":
+                logger.info("[EXIT-AUDIT] Meta-Veto exit: %s (meta_prob=%.3f)", veto_reason, meta_prob)
+                return f"meta_veto_{veto_reason}"
+            
+            if alpha_prob < 0.50:
+                logger.info("[EXIT-AUDIT] Alpha reversal exit (prob=%.3f)", alpha_prob)
+                return "alpha_reversal"
+            
+            # Fallback
+            return "pipeline_exit_zero"
+        
+        return None
 
     def custom_stake_amount(self, pair: str, current_time, current_rate: float,
                             proposed_stake: float, min_stake: Optional[float],
