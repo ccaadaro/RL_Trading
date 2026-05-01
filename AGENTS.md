@@ -77,18 +77,32 @@ El pipeline llevaba al menos varios días ejecutándose pero **nunca completánd
 | Daemon (`market_data_daemon.py`) | Reiniciado, PID 724171 (WebSocket cayó durante validación) |
 | Dashboard server | Corriendo, PID 132402, `http://localhost:8050` |
 | Freqtrade | Corriendo, PID 711045, dry-run |
-| Pipeline ejecución | **No confirmada** — daemon cayó justo cuando se esperaba el primer "Pipeline OK" post-fix |
+| Pipeline ejecución | **CONFIRMADA** — primer "Pipeline OK" a las 2026-05-01 08:44:55, bar=1005, HMM fitteado |
 | Código | Commiteado en `fix/shadow-live-telemetry`, sincronizado a las 3 copias |
 
 ### Para el próximo agente
 
-1. **Verificar que el pipeline dispara**: Buscar `"Pipeline OK"` en `/home/nosferatu/freqtrade/user_data/logs/freqtrade.log` con timestamp posterior a `2026-05-01 08:22`. Si no aparece en 5 minutos, revisar:
-   - ¿El daemon está produciendo `DOLLAR_BAR`? → Probar ZMQ en `tcp://127.0.0.1:5555`
-   - ¿Hay errores nuevos en el log?
+1. **Pipeline confirmado funcionando** — primer "Pipeline OK" a 2026-05-01 08:44:55. No hay que verificar más esto. Los siguientes logs confirmados:
+   ```
+   [HMM] Re-fitting model (interval=500 bars, window=1005)...
+   [KILL-SWITCH] Regime unknown -> Position zeroed
+   [HTF-HMM] Fitting on 730 1h bars...
+   Pipeline OK | bar=1005 close=77408.29 alpha=0.500 regime=unknown target_pos=0.0000 (event=no)
+   ```
 
 2. **Doble carga (problema pre-existente)**: El bot carga la estrategia DOS veces porque la encuentra en `/home/nosferatu/freqtrade/user_data/strategies/` Y en `RL_Trading/`. Hay dos `InstitutionalSignalEngine` corriendo. Solo uno puede bindear puerto 5556; el segundo falla silenciosamente. La solución definitiva es borrar las copias extras en `strategies/` y `strategies/institutional/` y usar siempre `--strategy-path /home/nosferatu/freqtrade/user_data/strategies/RL_Trading`.
 
-3. **`regime=unknown` y `target_pos=0.0000`** (cuando el pipeline sí disparaba): El HMM devolvía "unknown" → Kill-Switch 1 ponía la posición a cero. Investigar si el assert `self._hmm.features[0] == "log_return_feature"` está fallando.
+3. **`regime=unknown` y `target_pos=0.0000`** — ACTIVO, bloquea todos los trades:
+   - El HMM se fittea correctamente (1005 barras) pero `predict_current` devuelve `"unknown"`.
+   - Kill-Switch 1 (`hard_blackout = {"unknown", "panic_selloff", "bear_neutral"}`) pone `raw_target_pos=0.0`.
+   - Probable causa: el assert `self._hmm.features[0] == "log_return_feature"` falla porque el HMM se fittó con un orden de features distinto al esperado, o `predict_current` lanza excepción que se captura silenciosamente → `df["hmm_semantic_regime"] = "unknown"`. Añadir `exc_info=True` al warning de HMM (línea ~518) para ver el traceback completo.
+   - Alternativamente: `HMMRegimeModel.predict_current` puede devolver `"unknown"` por diseño cuando la confianza es baja o el estado no tiene etiqueta semántica asignada. Ver `utils/risk_directors.py`.
+
+4. **`alpha=0.500`** — ACTIVO, el modelo no genera señal:
+   - El stacking (línea ~334-343) anula la señal cuando `alpha_slow` es neutral (`abs(alpha_slow - 0.5) < 0.02`): `df["alpha_prob"] = 0.5 + (last_fast - 0.5) * 0.3`.
+   - Si el modelo rápido también da ~0.5, el resultado es exactamente 0.500.
+   - También puede ser efecto del shadow selector devolviendo `alpha_prob_final=0.5` por spread tóxico o stale data.
+   - Con `alpha=0.500`, Kill-Switch 3 (`if last_oof < 0.50`) no dispara, pero Kill-Switch 1 (regime unknown) ya ha puesto la posición a cero.
 
 4. **Decisión estratégica pendiente**: El modelo de $2M bars tiene AUC ~0.505 y no supera los costes. El EXPERIMENTAL_LOG documenta "Phase 8: FAILED". El código tiene un path de Phase 9 (1h candles vía `FreqtradeCandleProvider`). Discutir con el usuario antes de actuar.
 
