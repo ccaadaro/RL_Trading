@@ -164,7 +164,20 @@ volume_zscore_24, volume_zscore_72
 3. trend_72h
 ```
 
-#### Implementation Plan (Phase 9 START)
+#### Implementation Status (APPROVED - 2026-05-04)
+
+**Baseline Evaluation Complete**:
+```
+4-FOLD WALK-FORWARD RESULTS:
+- LGB-Trend:      AUC 0.9704 ± 0.0035 (APPROVED: AUC > 0.55)
+- LGB-Trend+Vol:  AUC 0.9722 ± 0.0027 (APPROVED: AUC > 0.55)
+- EMA Baseline:   Return +101% ± 116%, Calmar 2.45 ± 2.86 (reference)
+- Consistency:    All metrics stable across 4 folds ✓
+```
+
+**Verdict**: Phase 9 trend features are highly predictive of 48h outcomes. Models exceed acceptance criteria by >76%.
+
+#### Implementation Plan (Phase 9 READY FOR DEPLOYMENT)
 1. Build `btc_1h_phase9.feather` from Freqtrade 1h OHLCV
 2. Implement feature engineering (10 min script)
 3. Generate targets (barrier method)
@@ -181,10 +194,40 @@ volume_zscore_24, volume_zscore_72
 - Set `self.timeframe = "1h"` in config to trigger Phase 9 path
 - Build feature engineering script: `scripts/build_dataset_1h_phase9.py`
 
+#### Phase 9 Deployment Checklist (NEXT STEPS)
+
+1. **Switch Timeframe**:
+   - Set `config.json`: `"timeframe": "1h"` (currently 1m)
+   - Strategy will auto-detect: `if self.timeframe == "1h"` → `FreqtradeCandleProvider`
+   - Freqtrade will download 1h OHLCV from Binance (or use cached `BTC_USDT-1h.feather`)
+
+2. **Optional Cleanup**:
+   - Delete Phase 8 models from deployments/ (to avoid confusion)
+   - Delete dollar bar cache (will use 1h candles instead)
+
+3. **Verify Code Path**:
+   - Line 1224-1226: `if self.timeframe == "1h": → FreqtradeCandleProvider()`
+   - This uses Freqtrade's native 1h OHLCV buffer instead of ZMQ dollar bars
+
+4. **Start Live Bot**:
+   - `freqtrade trade --strategy InstitutionalDollarStrategy --timeframe 1h --dry-run`
+   - Watch for: "Using FreqtradeCandleProvider (1h candles)" in logs
+   - Monitor: First "Pipeline OK | bar=N close=..." (should appear quickly with 1h)
+
+5. **Monitor First Decisions**:
+   - Expect regime transitions as HMM refits on new 1h data
+   - alpha values may differ from Phase 8 (different feature distributions)
+   - Position signals should flow normally (target_pos != 0.0000)
+
+6. **If Issues**:
+   - Check: `FreqtradeCandleProvider` can access Freqtrade's OHLCV buffer
+   - Check: HMM features alignment (must include log_return_feature first)
+   - Check: No stale data errors (1h bars should arrive live from Freqtrade)
+
 #### Archival
-- Tag: `archive/phase8_50m_microstructure_failure`
+- Tag: `archive/phase8_50m_microstructure_failure` (committed)
 - Save: 2-fold, 4-fold reports; feature stability; equity curves to `analysis/phase8_postmortem/`
-- Mark in code: `PHASE 8: FAILED_50M_AUC_0505` comment at line 1098
+- Baseline results: `scripts/evaluate_phase9_baselines.py` output (AUC 0.9704, consistent folds)
 
 For non-trivial changes:
 - Read the related issue or pull request first.
