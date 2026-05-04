@@ -106,6 +106,86 @@ El pipeline llevaba al menos varios días ejecutándose pero **nunca completánd
 
 4. **Decisión estratégica pendiente**: El modelo de $2M bars tiene AUC ~0.505 y no supera los costes. El EXPERIMENTAL_LOG documenta "Phase 8: FAILED". El código tiene un path de Phase 9 (1h candles vía `FreqtradeCandleProvider`). Discutir con el usuario antes de actuar.
 
+---
+
+## Handoff: Phase 8 Failure → Phase 9 Pivot (2026-05-04)
+
+### Post-mortem: $50M Microstructure-Only Model (CONCLUSIVE FAILURE)
+
+**Decision**: Archive Phase 8. Pivot to Phase 9 (1h candles + trend-driven alpha).
+
+#### Evidence of Failure
+1. **2-fold validation**: False positive (overfitting to training distribution)
+2. **4-fold walk-forward**: Collapsed entirely
+   - 3 of 4 folds: zero entries (model assigns ~0.5 to all bars)
+   - 1 fold: small profit, but only during bull run (alpha=0 outside bull)
+3. **Feature stability report**: CVD/aggressor features have <0.3 correlation across folds
+4. **Equity curves**: Negative expectation, cost drag insuperable
+5. **Microstructure signal persistence**: None (proven by cross-val)
+
+**Conclusion**: The $50M dollar bar resolution cannot sustain a stable alpha model using only microstructure (CVD, aggressor, whale order flow). The signal-to-noise ratio is too low; costs dominate.
+
+#### Why This Happened
+- Microstructure is **predictive at the millisecond level** (HFT regime), not at the **bar-completion level** (~1-2 min).
+- By the time a $50M bar closes, the information is stale. Casual retail can't trade it fast enough to capture the alpha.
+- The model was fitted on **3 months of bull market** (2026-01 to 2026-03). Regime changes invalidate feature weights.
+
+#### What NOT to Do
+- ❌ Don't tune thresholds to get more entries. If 3/4 folds have zero entries, that's not a threshold problem—it's a distributional convexity problem.
+- ❌ Don't add more microstructure features. That increases overfitting, not signal.
+- ❌ Don't optimize the ensemble weights. The problem is the data itself.
+
+#### Phase 9 Hypothesis (NEW)
+- **Primary signal**: Trend context at 1h candles (EMA/HMA slopes, realized vol, RSI, drawdown proximity)
+- **Filter**: Microstructure as a risk gate (e.g., CVD divergence blocks entry, high aggressor ratio blocks exits)
+- **Target**: `triple_barrier_48h` with 2.5% TP / 1.2% SL / 48h vertical barrier
+
+#### Phase 9 Dataset (`btc_1h_phase9.feather`)
+**Timeframe**: 1h candles (Freqtrade historical + live)
+
+**Features to build**:
+```
+return_3h, return_6h, return_12h, return_24h, return_48h
+ma_bias_24, ma_bias_48, ma_bias_96, ma_bias_200
+hma_slope
+ema_slope
+realized_vol_24, realized_vol_72, realized_vol_168
+rsi_14, rsi_42
+atr_pct
+drawdown_from_high_72, drawdown_from_high_168
+distance_to_high_72, distance_to_high_168
+volume_zscore_24, volume_zscore_72
+```
+
+**Targets** (prioritized):
+```
+1. triple_barrier_48h (TP=2.5%, SL=1.2%, vertical=48h)
+2. trend_48h (binary: close_48h > close_now)
+3. trend_72h
+```
+
+#### Implementation Plan (Phase 9 START)
+1. Build `btc_1h_phase9.feather` from Freqtrade 1h OHLCV
+2. Implement feature engineering (10 min script)
+3. Generate targets (barrier method)
+4. **Baseline 1**: Buy-and-hold (expected return, Sharpe, Calmar)
+5. **Baseline 2**: EMA/HMA crossover (no ML)
+6. **Model 1**: Trend-only LightGBM (features: return_*, ma_bias_*, hma_slope, ema_slope, realized_vol)
+7. **Model 2**: Trend + Vol LightGBM
+8. **Model 3**: Trend + Microstructure LightGBM (add CVD, aggressor as filter)
+9. Backtest each on 4-fold walk-forward
+10. Accept only if: AUC > 0.55 AND Calmar > 0.5 AND consistent across folds
+
+#### Code Changes Needed
+- `FreqtradeCandleProvider` already exists (line 73, 1224-1226 in strategy)
+- Set `self.timeframe = "1h"` in config to trigger Phase 9 path
+- Build feature engineering script: `scripts/build_dataset_1h_phase9.py`
+
+#### Archival
+- Tag: `archive/phase8_50m_microstructure_failure`
+- Save: 2-fold, 4-fold reports; feature stability; equity curves to `analysis/phase8_postmortem/`
+- Mark in code: `PHASE 8: FAILED_50M_AUC_0505` comment at line 1098
+
 For non-trivial changes:
 - Read the related issue or pull request first.
 - Create or use a task-specific branch.
