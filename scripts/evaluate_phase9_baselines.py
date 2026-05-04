@@ -98,13 +98,13 @@ def train_lgb_model(X_train, y_train, X_test):
     params = {
         'objective': 'binary',
         'metric': 'auc',
-        'num_leaves': 31,
-        'learning_rate': 0.05,
+        'num_leaves': 15,
+        'learning_rate': 0.1,
         'feature_fraction': 0.8,
         'bagging_fraction': 0.8,
         'verbose': -1,
     }
-    model = lgb.train(params, train_data, num_boost_round=100)
+    model = lgb.train(params, train_data, num_boost_round=50)
 
     # Predict
     y_pred_proba = model.predict(X_test_scaled)
@@ -114,10 +114,10 @@ def train_lgb_model(X_train, y_train, X_test):
 
 def evaluate_model(df_test, y_pred, y_pred_proba):
     """Evaluate model on test set."""
-    returns = df_test['close'].pct_change()
+    returns = df_test['close'].pct_change().reset_index(drop=True)
 
-    # Positions: 1 if pred=1, -1 if pred=0, 0 if prediction uncertain
-    positions = np.where(y_pred == 1, 1, 0)
+    # Positions: 1 if pred=1 (bullish), -1 if pred=0 (bearish)
+    positions = np.where(y_pred == 1, 1, -1)
 
     # Metrics
     y_true_binary = ((df_test['triple_barrier_48h'] + 1) / 2).astype(int)
