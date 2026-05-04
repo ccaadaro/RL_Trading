@@ -170,7 +170,7 @@ class HMMRegimeModel:
             return "unknown"
         except Exception as e:
             # BUG-02 FIX: Never use bare except. Log the real error so bugs are visible.
-            logger.warning("[HMM] predict_current failed: %s", e, exc_info=False)
+            logger.warning("[HMM] predict_current failed: %s", e, exc_info=True)
             return "unknown"
 
     def fit_predict(self, df: pd.DataFrame, features: List[str]) -> Tuple[pd.Series, pd.Series]:

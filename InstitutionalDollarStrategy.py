@@ -132,6 +132,8 @@ class InstitutionalSignalEngine(threading.Thread):
         self._pending_regime: Optional[str] = None
         self._pending_regime_count: int = 0
         self._committed_regime: str = "unknown"
+        self._last_hmm_diag: float = 0.0
+        self._last_alpha_diag: float = 0.0
 
         # BYPASS HOLD: After a bypass entry, sustain the 10% floor for up to
         # _HYSTERESIS_TO_BULL bars so the position isn't killed before the HMM
@@ -307,9 +309,13 @@ class InstitutionalSignalEngine(threading.Thread):
 
                 # 2. Slow Alpha (1h Ensemble Logic)
                 alpha_slow = 0.5
+                alpha_slow_source = "not_loaded"
+                alpha_slow_models = 0
                 if self._alpha_slow and isinstance(self._alpha_slow, dict):
                     slow_models = self._alpha_slow.get("models", {})
                     weights = self._alpha_slow.get("weights", {})
+                    alpha_slow_source = "loaded"
+                    alpha_slow_models = len(slow_models)
                     logits = 0.0
                     total_w = 0.0
                     last_idx = len(X) - 1
@@ -326,6 +332,8 @@ class InstitutionalSignalEngine(threading.Thread):
                     
                     if total_w > 0:
                         alpha_slow = 1.0 / (1.0 + np.exp(-logits / total_w))
+                    else:
+                        alpha_slow_source = "loaded_no_weight"
                 
                 df["alpha_prob_slow"] = alpha_slow
                 
@@ -341,6 +349,15 @@ class InstitutionalSignalEngine(threading.Thread):
                         df["alpha_prob"] = 0.5 # kill signal
                     else:
                         df["alpha_prob"] = last_fast
+
+                now = time.time()
+                if now - self._last_alpha_diag >= 60.0:
+                    logger.info(
+                        "[ALPHA] fast=%.4f slow=%.4f final=%.4f slow_source=%s slow_models=%d",
+                        last_fast, float(alpha_slow), float(df["alpha_prob"].iloc[-1]),
+                        alpha_slow_source, alpha_slow_models,
+                    )
+                    self._last_alpha_diag = now
 
             except Exception as e:
                 logger.warning("Combined Alpha inference failed: %s", e, exc_info=True)
@@ -480,6 +497,14 @@ class InstitutionalSignalEngine(threading.Thread):
                 # Semantic labeling (Log Return is features[0])
                 assert self._hmm.features[0] == "log_return_feature", "HMM first feature must be log_return_feature for semantic labeling"
                 current_regime_raw = self._hmm.predict_current(df.tail(50))
+                if current_regime_raw == "unknown":
+                    now = time.time()
+                    if now - self._last_hmm_diag >= 60.0:
+                        logger.warning(
+                            "[HMM] raw regime is unknown | features=%s fitted=%s state_map=%s tail_rows=%d",
+                            self._hmm.features, self._hmm_fitted, self._hmm.state_map, len(df.tail(50)),
+                        )
+                        self._last_hmm_diag = now
 
                 # D-02 FIX: Temporal hysteresis — only commit regime change after
                 # N consecutive bars with the same new label (asymmetric: faster into bull).
@@ -507,6 +532,16 @@ class InstitutionalSignalEngine(threading.Thread):
                     self._pending_regime_count = 1
 
                 current_regime = self._committed_regime
+                if current_regime == "unknown" and current_regime_raw != "unknown":
+                    now = time.time()
+                    if now - self._last_hmm_diag >= 60.0:
+                        logger.info(
+                            "[HMM] raw=%s pending=%s pending_count=%d needed=%d committed=%s",
+                            current_regime_raw, self._pending_regime,
+                            self._pending_regime_count, _hysteresis_needed,
+                            self._committed_regime,
+                        )
+                        self._last_hmm_diag = now
                 df["hmm_semantic_regime"] = current_regime
                 self._bars_since_fit += 1
             except Exception as e:
