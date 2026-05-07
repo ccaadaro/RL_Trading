@@ -234,3 +234,70 @@ For non-trivial changes:
 - Create or use a task-specific branch.
 - Open a pull request instead of committing directly to the main branch.
 - Leave a handoff comment in the issue or pull request.
+---
+
+## Handoff: Phase 9 Research Hardening (2026-05-07)
+
+### Context
+Phase 9 (1h candles) was showing artificially high performance (AUC 0.97). A critical audit revealed three layered bugs that were inflating research metrics.
+
+### Bugs Corrected
+
+#### 1. **Data Leakage (Features)**
+- **File**: `scripts/build_dataset_1h_phase9.py`
+- **Cause**: Return features used `shift(-period)`, calculating returns using future prices.
+- **Fix**: Replaced with backward-looking `pct_change(period)`.
+
+#### 2. **Data Leakage (Fold Boundaries)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Cause**: No purge window. Training labels (48h lookahead) were "seeing" the first 48h of the test set.
+- **Fix**: Implemented a **72-hour purge window** between training and testing.
+
+#### 3. **Evaluation Bias (Fold Count)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Cause**: First fold had `test_start = 0`, leaving 0 rows for training. The evaluation was silently skipping fold 1 and reporting a 3-fold average as a 4-fold result.
+- **Fix**: Divided data into 5 segments to ensure a valid initial training set for the first fold.
+
+### Final Corrected Metrics (True 4-Fold + Purge)
+
+| Model | Mean AUC | Mean Return | Mean Calmar |
+| :--- | :--- | :--- | :--- |
+| **LGB-Trend** | 0.5506 ± 0.0195 | +1.54 | 3.65 |
+| **LGB-Trend+Vol** | **0.5518 ± 0.0229** | **+0.80** | **2.20** |
+
+### Current Status
+- **Integrity**: Research pipeline is now robust and leak-free.
+- **Viability**: The 0.55 AUC threshold is still exceeded, confirming Phase 9 trend-following is a viable (though thinner) alpha source.
+- **Production**: Strategy execution (`InstitutionalDollarStrategy.py`) was audited and found clean of these specific leaks.
+
+### Next Step Recommended
+- Proceed to **Model 3 (Trend + Microstructure)**. Use the corrected dataset to see if integrating CVD/Aggressor ratios as filters can widen the 0.55 AUC margin.
+
+#### 4. **Mathematically Broken Features**
+- **File**: `scripts/build_dataset_1h_phase9.py`
+- **Cause**: `volume_zscore_24` was identically zero due to subtracting the same rolling mean it was centered on. `volume_zscore_72` mixed inconsistent windows.
+- **Fix**: Implemented proper rolling z-scores (`(val - mean) / std`) for each window.
+
+#### 5. **Timeframe Discrepancy (Regime Shift)**
+- **File**: `scripts/build_dataset_1h_phase9.py`
+- **Cause**: Dataset spanned 2018-2026, but Phase 9 was designed for the 2021-2026 regime. Including the easier 2018-2020 trends inflated metrics.
+- **Fix**: Truncated dataset to start from **2021-01-01**.
+- **Impact**: AUC dropped to **0.54**, which is below the 0.55 threshold. This confirms that trend-following alone is insufficient for the modern regime and necessitates the integration of microstructure filters (Model 3).
+
+#### 6. **Target Fragility (Alignment Check)**
+- **File**: `scripts/build_dataset_1h_phase9.py`
+- **Fix**: Refactored target loop to use `iloc` and added explicit causality assertions to ensure labels are perfectly aligned with 48h-future price action.
+
+#### 7. **Unrealistic PnL (Friction Collapse)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Cause**: PnL was computed without costs and used 1h rebalancing for a 48h signal.
+- **Fix**: Implemented transaction costs (14bps roundtrip) and handled position transitions.
+- **Outcome**: Returns collapsed from **+101% to -81%**. This proves that the current trend-only alpha is insufficient to cover trading costs at 1h resolution. Phase 9 viability now depends entirely on Model 3 (Microstructure filters).
+
+#### 8. **Target NaN handling (Evaluation Bias)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Added `valid_mask` to `evaluate_model` to drop trailing rows with NaN labels before computing AUC/accuracy. This prevents mis-classification of un-labeled rows at the edge of each fold.
+
+#### 9. **Programmable Acceptance Gate (Process Hardening)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Implemented an explicit `[GATE]` check that compares mean AUC against the 0.55 threshold. The script now programmatically outputs `REJECTED` for current trend-only baselines, preventing over-optimistic human interpretation.

@@ -50,14 +50,24 @@ MICRO_FEATURES = [
     # Will add CVD, aggressor, whale features from micro dataset
 ]
 
-def compute_pnl(returns, positions):
-    """Compute PnL, Sharpe, Calmar from returns and positions."""
-    strategy_returns = returns * positions.shift(1)
-    cumulative = (1 + strategy_returns).cumprod()
+def compute_pnl(returns, positions, cost_bps=7.0):
+    """Compute PnL, Sharpe, Calmar with transaction costs."""
+    # positions.shift(1) handles execution lag (trade at next close)
+    pos = positions.shift(1).fillna(0)
+    strategy_returns = returns * pos
+    
+    # Costs: 7bps per side (0.07% / 0.0007)
+    # A position flip (1 to -1) is a 2.0 change in exposure -> 14bps cost
+    cost_per_side = cost_bps / 10000.0
+    pos_change = pos.diff().abs().fillna(0)
+    transaction_costs = pos_change * cost_per_side
+    
+    net_returns = strategy_returns - transaction_costs
+    cumulative = (1 + net_returns).cumprod()
 
-    total_return = cumulative.iloc[-1] - 1
-    sharpe = strategy_returns.mean() / strategy_returns.std() * np.sqrt(252 * 24)  # annualized
-    max_dd = (cumulative / cumulative.expanding().max()).min() - 1
+    total_return = cumulative.iloc[-1] - 1 if len(cumulative) > 0 else 0
+    sharpe = net_returns.mean() / net_returns.std() * np.sqrt(252 * 24) if net_returns.std() != 0 else 0
+    max_dd = (cumulative / cumulative.expanding().max()).min() - 1 if len(cumulative) > 0 else 0
     calmar = total_return / abs(max_dd) if max_dd != 0 else 0
 
     return {
@@ -119,10 +129,16 @@ def evaluate_model(df_test, y_pred, y_pred_proba):
     # Positions: 1 if pred=1 (bullish), -1 if pred=0 (bearish)
     positions = np.where(y_pred == 1, 1, -1)
 
-    # Metrics
-    y_true_binary = ((df_test['triple_barrier_48h'] + 1) / 2).astype(int)
-    auc = roc_auc_score(y_true_binary, y_pred_proba) if len(np.unique(y_true_binary)) > 1 else np.nan
-    accuracy = accuracy_score(y_true_binary, y_pred)
+    # Metrics (only on valid labels)
+    valid_mask = df_test['triple_barrier_48h'].notna()
+    y_true_raw = df_test['triple_barrier_48h'][valid_mask]
+    y_true_binary = ((y_true_raw + 1) / 2).astype(int)
+    
+    y_pred_proba_valid = y_pred_proba[valid_mask]
+    y_pred_valid = y_pred[valid_mask]
+
+    auc = roc_auc_score(y_true_binary, y_pred_proba_valid) if len(np.unique(y_true_binary)) > 1 else np.nan
+    accuracy = accuracy_score(y_true_binary, y_pred_valid)
 
     # PnL
     pnl = compute_pnl(returns, pd.Series(positions))
@@ -140,7 +156,8 @@ def run_4fold_walkforward():
     # Prepare data
     df_clean = df.dropna(subset=['triple_barrier_48h']).reset_index(drop=True)
     n_samples = len(df_clean)
-    fold_size = n_samples // 4
+    # Divide into 5 segments to have 1 for initial training and 4 for testing
+    fold_size = n_samples // 5
 
     logger.info(f"Running 4-fold walk-forward on {n_samples} samples (fold_size={fold_size})")
 
@@ -151,16 +168,19 @@ def run_4fold_walkforward():
         'lgb_trend_vol': [],
     }
 
+    PURGE_WINDOW = 72  # 72 hours (exceeds 48h barrier lookahead)
+
     for fold in range(4):
-        test_start = fold * fold_size
-        test_end = (fold + 1) * fold_size if fold < 3 else n_samples
-        train_end = test_start
+        # Shift test window by 1 fold_size to allow for initial training
+        test_start = (fold + 1) * fold_size
+        test_end = (fold + 2) * fold_size if fold < 3 else n_samples
+        train_end = max(0, test_start - PURGE_WINDOW)
 
         # Use all data before test set for training (expanding window)
         df_train = df_clean.iloc[:train_end]
         df_test = df_clean.iloc[test_start:test_end]
 
-        logger.info(f"\nFold {fold+1}/4: train={len(df_train)}, test={len(df_test)}")
+        logger.info(f"\nFold {fold+1}/4: train={len(df_train)}, test={len(df_test)}, purge={PURGE_WINDOW}")
 
         # Baselines
         bh_result = baseline_buy_hold(df_test)
@@ -205,10 +225,19 @@ def run_4fold_walkforward():
             rets = [r.get('return', np.nan) for r in fold_results]
             calmars = [r.get('calmar', np.nan) for r in fold_results]
 
+            mean_auc = np.nanmean(aucs)
+            std_auc = np.nanstd(aucs)
             logger.info(f"\n{model_name}:")
-            logger.info(f"  AUC:    {np.nanmean(aucs):.4f} ± {np.nanstd(aucs):.4f} (folds: {[f'{a:.4f}' for a in aucs]})")
+            logger.info(f"  AUC:    {mean_auc:.4f} ± {std_auc:.4f} (folds: {[f'{a:.4f}' for a in aucs]})")
             logger.info(f"  Return: {np.nanmean(rets):.4f} ± {np.nanstd(rets):.4f} (folds: {[f'{r:.4f}' for r in rets]})")
             logger.info(f"  Calmar: {np.nanmean(calmars):.4f} ± {np.nanstd(calmars):.4f} (folds: {[f'{c:.4f}' for c in calmars]})")
+
+            # Programmatic Acceptance Gate
+            THRESHOLD = 0.55
+            if mean_auc >= THRESHOLD:
+                logger.info(f"  [GATE] Result: APPROVED (AUC {mean_auc:.4f} >= {THRESHOLD})")
+            else:
+                logger.info(f"  [GATE] Result: REJECTED (AUC {mean_auc:.4f} < {THRESHOLD})")
 
 if __name__ == '__main__':
     run_4fold_walkforward()

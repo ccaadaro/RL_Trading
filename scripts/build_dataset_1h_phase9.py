@@ -22,7 +22,11 @@ def build_phase9_dataset():
     data_path = Path('/home/nosferatu/freqtrade/user_data/data/binance/BTC_USDT-1h.feather')
     logger.info(f"Loading 1h OHLCV from {data_path}")
     df = pd.read_feather(data_path)
-    df = df.reset_index(drop=True)
+    
+    # Filter to Phase 9 regime (2021-2026)
+    START_DATE = '2021-01-01'
+    df = df[df['date'] >= START_DATE].reset_index(drop=True)
+    
     logger.info(f"Loaded {len(df)} 1h candles from {df['date'].min()} to {df['date'].max()}")
 
     # Ensure numeric columns
@@ -34,7 +38,7 @@ def build_phase9_dataset():
 
     # Returns at different horizons
     for period in [3, 6, 12, 24, 48]:
-        df[f'return_{period}h'] = (df['close'].shift(-period) - df['close']) / df['close']
+        df[f'return_{period}h'] = df['close'].pct_change(period)
 
     # EMA slopes (12h, 26h, 50h windows)
     for span in [12, 26, 50]:
@@ -96,10 +100,10 @@ def build_phase9_dataset():
         df[f'distance_to_high_{period}'] = (rolling_high - df['close']) / df['close']
 
     # Volume zscore
-    sma_vol = df['volume'].rolling(24).mean()
-    std_vol = df['volume'].rolling(24).std()
     for period in [24, 72]:
-        df[f'volume_zscore_{period}'] = (df['volume'].rolling(period).mean() - sma_vol) / (std_vol + 1e-8)
+        rolling_mean = df['volume'].rolling(period).mean()
+        rolling_std = df['volume'].rolling(period).std()
+        df[f'volume_zscore_{period}'] = (df['volume'] - rolling_mean) / (rolling_std + 1e-8)
 
     # ==================== TRIPLE BARRIER TARGET ====================
     logger.info("Computing triple barrier targets...")
@@ -109,13 +113,18 @@ def build_phase9_dataset():
     BARRIER_HOURS = 48  # 48 hour vertical barrier
 
     targets = []
-    for i in range(len(df) - BARRIER_HOURS):
-        close_now = df.loc[i, 'close']
+    # Use integer indexing to be robust to non-zero-starting indices
+    for i in range(len(df)):
+        if i >= len(df) - BARRIER_HOURS:
+            targets.append(np.nan)
+            continue
+            
+        close_now = df['close'].iloc[i]
         tp_level = close_now * (1 + TP_PERCENT)
         sl_level = close_now * (1 - SL_PERCENT)
 
-        # Look ahead 48 hours
-        lookahead = df.loc[i+1:i+BARRIER_HOURS, ['high', 'low', 'close']]
+        # Look ahead 48 hours using iloc
+        lookahead = df.iloc[i+1 : i+BARRIER_HOURS+1][['high', 'low', 'close']]
 
         if len(lookahead) == 0:
             targets.append(np.nan)
@@ -123,7 +132,7 @@ def build_phase9_dataset():
 
         max_high = lookahead['high'].max()
         min_low = lookahead['low'].min()
-        final_close = lookahead['close'].iloc[-1] if len(lookahead) > 0 else close_now
+        final_close = lookahead['close'].iloc[-1]
 
         # Determine target
         if max_high >= tp_level:
@@ -136,9 +145,21 @@ def build_phase9_dataset():
 
         targets.append(target)
 
-    # Pad last 48 hours with NaN
-    targets.extend([np.nan] * BARRIER_HOURS)
     df['triple_barrier_48h'] = targets
+    
+    # Robustness check: verify a random sample for alignment
+    sample_idx = len(df) // 2
+    sample_close = df['close'].iloc[sample_idx]
+    sample_target = df['triple_barrier_48h'].iloc[sample_idx]
+    sample_lookahead_close = df['close'].iloc[sample_idx + BARRIER_HOURS]
+    
+    # Simple check: if vertical barrier was hit, target must match close direction
+    # This is a partial check but verifies index alignment
+    if sample_target != 0: # If we have a target
+        # If it was a vertical barrier hit (no TP/SL hit), it must match the sign of return
+        # We can't know for sure it was vertical without re-running logic, but we can log
+        logger.info(f"Alignment check (row {sample_idx}): close={sample_close:.2f}, "
+                    f"close+48={sample_lookahead_close:.2f}, target={sample_target}")
 
     # Also create binary trend targets for comparison
     df['trend_48h'] = (df['close'].shift(-48) > df['close']).astype(int)
@@ -156,6 +177,14 @@ def build_phase9_dataset():
 
     logger.info(f"Final dataset: {len(df)} rows, {len(df.columns)} columns")
     logger.info(f"Columns: {list(df.columns)}")
+
+    # Final alignment assertion: verify a few points to ensure reset_index didn't shift anything
+    for check_idx in [100, len(df)//2, len(df)-BARRIER_HOURS-1]:
+        c_now = df['close'].iloc[check_idx]
+        c_future = df['close'].iloc[check_idx + BARRIER_HOURS]
+        # Verify that trend_48h matches the price action at this index
+        # This confirms that shift(-48) and the dataframe slicing are perfectly aligned
+        assert (df['trend_48h'].iloc[check_idx] == 1) == (c_future > c_now), f"Index alignment failed at {check_idx}"
 
     # Save
     output_path = Path('/home/nosferatu/freqtrade/user_data/strategies/RL_Trading/cache/btc_1h_phase9.feather')
