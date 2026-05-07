@@ -267,10 +267,15 @@ def run_4fold_walkforward():
 
             mean_auc = np.nanmean(aucs)
             std_auc = np.nanstd(aucs)
+            mean_ret = np.nanmean(rets)
+            std_ret = np.nanstd(rets)
+            mean_calmar = np.nanmean(calmars)
+            std_calmar = np.nanstd(calmars)
+
             logger.info(f"\n{model_name}:")
             logger.info(f"  AUC:    {mean_auc:.4f} ± {std_auc:.4f} (folds: {[f'{a:.4f}' for a in aucs]})")
-            logger.info(f"  Return: {np.nanmean(rets):.4f} ± {np.nanstd(rets):.4f} (folds: {[f'{r:.4f}' for r in rets]})")
-            logger.info(f"  Calmar: {np.nanmean(calmars):.4f} ± {np.nanstd(calmars):.4f} (folds: {[f'{c:.4f}' for c in calmars]})")
+            logger.info(f"  Return: {mean_ret:.4f} ± {std_ret:.4f} (folds: {[f'{r:.4f}' for r in rets]})")
+            logger.info(f"  Calmar: {mean_calmar:.4f} ± {std_calmar:.4f} (folds: {[f'{c:.4f}' for c in calmars]})")
 
             # Programmatic Acceptance Gate Status
             THRESHOLD = 0.55
