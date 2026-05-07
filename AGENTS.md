@@ -301,3 +301,15 @@ Phase 9 (1h candles) was showing artificially high performance (AUC 0.97). A cri
 #### 9. **Programmable Acceptance Gate (Process Hardening)**
 - **File**: `scripts/evaluate_phase9_baselines.py`
 - **Fix**: Implemented an explicit `[GATE]` check that compares mean AUC against the 0.55 threshold. The script now programmatically outputs `REJECTED` for current trend-only baselines, preventing over-optimistic human interpretation.
+
+#### 10. **LABEL_COLS & Safety Assertions**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Defined a `LABEL_COLS` constant and added a startup assertion to ensure that no label columns are accidentally included in the feature set. This prevents future structural leakage bugs.
+
+#### 11. **CI-Friendly Exit Codes**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: The script now returns a non-zero exit code (`sys.exit(1)`) to the OS if the programmatic acceptance gate is REJECTED. This allows the evaluator to be used as a hard gate in CI/CD or automated research pipelines.
+
+#### 12. **Horizon-Aligned Backtest (48h Holds)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Refactored the backtest to use a 48h-hold strategy, matching the model's prediction horizon. This reduced transaction costs by ~48x, showing that while the models are now nominally profitable (+21%), they still fail the AUC gate required for institutional deployment.

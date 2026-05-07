@@ -50,6 +50,13 @@ MICRO_FEATURES = [
     # Will add CVD, aggressor, whale features from micro dataset
 ]
 
+LABEL_COLS = ['triple_barrier_48h', 'trend_48h', 'trend_72h']
+
+# Programmatic Safety: Ensure no labels ever leak into features
+ALL_FEATURES = TREND_FEATURES + VOL_FEATURES + MICRO_FEATURES
+leak_cols = [c for c in ALL_FEATURES if c in LABEL_COLS]
+assert not leak_cols, f"CRITICAL LEAKAGE: Columns {leak_cols} are marked as both features and labels!"
+
 def compute_pnl(returns, positions, cost_bps=7.0):
     """Compute PnL, Sharpe, Calmar with transaction costs."""
     # positions.shift(1) handles execution lag (trade at next close)
@@ -126,8 +133,27 @@ def evaluate_model(df_test, y_pred, y_pred_proba):
     """Evaluate model on test set."""
     returns = df_test['close'].pct_change().reset_index(drop=True)
 
-    # Positions: 1 if pred=1 (bullish), -1 if pred=0 (bearish)
-    positions = np.where(y_pred == 1, 1, -1)
+    # Positions: 48h hold strategy (only rebalance every 48 hours to match horizon)
+    positions = np.zeros(len(df_test))
+    BARRIER_HOURS = 48
+    
+    current_pos = 0
+    hold_timer = 0
+    
+    for i in range(len(df_test)):
+        if hold_timer > 0:
+            # Continue holding
+            positions[i] = current_pos
+            hold_timer -= 1
+        else:
+            # Re-evaluate
+            if y_pred[i] == 1:
+                current_pos = 1
+            else:
+                current_pos = -1
+            
+            positions[i] = current_pos
+            hold_timer = BARRIER_HOURS - 1 # Hold for this bar + 47 more
 
     # Metrics (only on valid labels)
     valid_mask = df_test['triple_barrier_48h'].notna()
@@ -232,12 +258,31 @@ def run_4fold_walkforward():
             logger.info(f"  Return: {np.nanmean(rets):.4f} ± {np.nanstd(rets):.4f} (folds: {[f'{r:.4f}' for r in rets]})")
             logger.info(f"  Calmar: {np.nanmean(calmars):.4f} ± {np.nanstd(calmars):.4f} (folds: {[f'{c:.4f}' for c in calmars]})")
 
-            # Programmatic Acceptance Gate
+            # Programmatic Acceptance Gate Status
             THRESHOLD = 0.55
             if mean_auc >= THRESHOLD:
                 logger.info(f"  [GATE] Result: APPROVED (AUC {mean_auc:.4f} >= {THRESHOLD})")
             else:
                 logger.info(f"  [GATE] Result: REJECTED (AUC {mean_auc:.4f} < {THRESHOLD})")
 
+    # Final Success Flag (for CI exit code)
+    passed_gate = False
+    for model_name in ['lgb_trend', 'lgb_trend_vol']:
+        fold_results = results.get(model_name, [])
+        if fold_results:
+            mean_auc = np.nanmean([r.get('auc', np.nan) for r in fold_results])
+            if mean_auc >= 0.55:
+                passed_gate = True
+                break
+    
+    return passed_gate
+
 if __name__ == '__main__':
-    run_4fold_walkforward()
+    import sys
+    success = run_4fold_walkforward()
+    if not success:
+        logger.error("\n[CRITICAL] Phase 9 evaluation REJECTED. AUC threshold not met.")
+        sys.exit(1)
+    else:
+        logger.info("\n[SUCCESS] Phase 9 evaluation APPROVED.")
+        sys.exit(0)
