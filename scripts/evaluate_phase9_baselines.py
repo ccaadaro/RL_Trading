@@ -129,16 +129,15 @@ def train_lgb_model(X_train, y_train, X_test):
 
     return y_pred, y_pred_proba, model
 
-def evaluate_model(df_test, y_pred, y_pred_proba):
+def evaluate_model(df_test, y_pred, y_pred_proba, vol_thresh):
     """Evaluate model on test set."""
     returns = df_test['close'].pct_change().reset_index(drop=True)
 
     # Positions: 48h hold strategy (only rebalance every 48 hours to match horizon)
     # Vol-conditional entry: skip trades when realized_vol_24 is in bottom quartile
+    # (Threshold is calculated from training data to avoid forward leak)
     positions = np.zeros(len(df_test))
     BARRIER_HOURS = 48
-    
-    vol_thresh = df_test['realized_vol_24'].quantile(0.25)
     
     current_pos = 0
     hold_timer = 0
@@ -219,6 +218,9 @@ def run_4fold_walkforward():
         df_test = df_clean.iloc[test_start:test_end]
 
         logger.info(f"\nFold {fold+1}/4: train={len(df_train)}, test={len(df_test)}, purge={PURGE_WINDOW}")
+        
+        # Volatility threshold from training data (to avoid leak in test)
+        vol_thresh = df_train['realized_vol_24'].quantile(0.25)
 
         # Baselines
         bh_result = baseline_buy_hold(df_test)
@@ -237,7 +239,7 @@ def run_4fold_walkforward():
 
         if len(X_train) > 0 and len(X_test) > 0:
             y_pred, y_pred_proba, _ = train_lgb_model(X_train, y_train, X_test)
-            trend_result = evaluate_model(df_test, y_pred, y_pred_proba)
+            trend_result = evaluate_model(df_test, y_pred, y_pred_proba, vol_thresh)
             results['lgb_trend'].append(trend_result)
             logger.info(f"  LGB-Trend: AUC={trend_result['auc']:.4f}, Acc={trend_result['accuracy']:.4f}, "
                        f"return={trend_result['return']:.4f}, calmar={trend_result['calmar']:.4f}")
@@ -247,7 +249,7 @@ def run_4fold_walkforward():
             X_test_vol = df_test[TREND_FEATURES + VOL_FEATURES].fillna(0)
 
             y_pred_vol, y_pred_proba_vol, _ = train_lgb_model(X_train_vol, y_train, X_test_vol)
-            vol_result = evaluate_model(df_test, y_pred_vol, y_pred_proba_vol)
+            vol_result = evaluate_model(df_test, y_pred_vol, y_pred_proba_vol, vol_thresh)
             results['lgb_trend_vol'].append(vol_result)
             logger.info(f"  LGB-Trend+Vol: AUC={vol_result['auc']:.4f}, Acc={vol_result['accuracy']:.4f}, "
                        f"return={vol_result['return']:.4f}, calmar={vol_result['calmar']:.4f}")

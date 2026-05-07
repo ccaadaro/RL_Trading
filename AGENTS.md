@@ -321,3 +321,7 @@ Phase 9 (1h candles) was showing artificially high performance (AUC 0.97). A cri
 #### 14. **Asymmetric Confidence Thresholds (0.45/0.55)**
 - **File**: `scripts/evaluate_phase9_baselines.py`
 - **Fix**: Implemented a filter that only executes trades when prediction probability is outside the 0.45-0.55 range. This reduces turnover by ignoring marginal signals. This optimization allowed the Trend+Vol model to achieve a Calmar of 0.53, though the AUC rejection remains in place.
+
+#### 15. **Vol-Threshold Leakage Fix**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Corrected a mild forward-looking bias where the volatility entry threshold was calculated using test-set quantiles. It now uses the training-set 25th percentile, ensuring the filter is 100% causal. This reduced baseline returns from +12.5% to +1.7%, revealing the true difficulty of the trend-only regime.
