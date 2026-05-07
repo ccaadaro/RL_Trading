@@ -10,8 +10,8 @@ _Version 1.0 — 2026-05-07_
 |-------|-----------|------|--------|----------|
 | Phase 8 | $50M dollar-bar microstructure-only alpha | AUC > 0.55 across 4 folds | FAIL — AUC ≈ 0.505, 3/4 folds zero entries | Archive. Microstructure at bar-completion is not alpha. |
 | Phase 9 | 1h OHLCV trend-only LightGBM | AUC > 0.55, Calmar > B&H after costs | FAIL — corrected AUC ≈ 0.54, returns collapse to −81% with costs | Archive. Trend-only OHLCV insufficient for cost-adjusted alpha. |
-| **Phase 10** | Exogenous alpha: funding, basis, OI | AUC ≥ 0.53, Net ROI > Random P95, Calmar > B&H | **FUNDING: FAIL** — mean AUC 0.506, net ROI −7.1% vs rand P95 +45.6% | Funding-only archived. Basis family pending sign-off. |
-| Phase 11 | Horizon shift: daily candles, 7d holds | AUC ≥ 0.52, economic edge after costs | PENDING | — |
+| **Phase 10** | Exogenous alpha: funding, basis, OI | AUC ≥ 0.53, Net ROI > Random P95, Calmar > B&H | **ARCHIVED** — funding AUC 0.506, basis AUC 0.535 (1 gate pass, 3 fail). No economic edge post-friction. | Phase 10 closed. Proceed to Phase 11. |
+| **Phase 11** | Horizon shift: daily candles, 7d holds | AUC ≥ 0.52, economic edge after costs | **NEXT** | Activate after Phase 10 archive. |
 | Phase 12 | Strategic decision point | — | PENDING | — |
 
 ---
@@ -259,5 +259,6 @@ Three honest options:
 - **Hypothesis**: Funding rate, perp-spot basis, and OI carry independent directional signal
 - **Gate**: mean AUC ≥ 0.53, min fold AUC ≥ 0.51, Net ROI > Random P95, Calmar > B&H
 - **Result (Funding-only, 2026-05-07)**: FAIL — mean AUC 0.506 ± 0.020; min fold 0.493; net ROI −7.1% vs Random P95 +45.6%; Calmar 0.003 vs B&H 1.77. All 4 gates failed. Sanity checks clean (shuffled-label AUC 0.493, no timestamp leakage, single-feature AUCs all < 0.54).
+- **Result (Basis-only, 2026-05-07)**: FAIL — mean AUC 0.535 ± 0.020; min fold 0.509; net ROI −0.8% vs Random P95 +41.5%; Calmar 0.169 vs B&H 1.77. AUC gate marginal pass (0.535 > 0.53) but 3/4 gates failed. The model cannot generate positive net ROI after costs despite directional signal. Timestamp audit clean (min_lag=28,800s, count_negative_lag=0). Shuffled-label AUC 0.511, no structural leakage.
 - **OI data gap**: Binance FAPI retains only 28 days of OI history. Cached file spans 2026-02-18 → 2026-04-11. Insufficient for training. Requires CoinGlass or Glassnode for historical OI.
-- **Decision**: Funding-only ARCHIVED. Per protocol: basis family may only be added with explicit sign-off. Phase 11 (Horizon Shift) is the next automatic action.
+- **Decision**: Phase 10 ARCHIVED. Both funding and basis fail the economic gates. The weak directional signal in basis (AUC ~0.53) is consumed entirely by execution costs at 1h resolution. Noise control ranked below all real features in both runs — models are stable, not leaking. Proceeding to Phase 11 (Horizon Shift).

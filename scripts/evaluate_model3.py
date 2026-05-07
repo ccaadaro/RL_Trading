@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 """
-Phase 10 — Model 3 Evaluator: Funding-Only.
+Phase 10 — Model 3 Evaluator.
 
-Runs full evaluation pipeline:
-1. Single-feature AUC scan
-2. Correlation with target
-3. Shuffled-label sanity test
-4. Lag-all-features test
-5. 4-fold walk-forward with benchmarks
-6. Feature importance stability
+Supports --family {funding, basis} for isolated single-family evaluation.
+Do NOT combine families until each passes standalone gates.
 
-Pre-committed gate (MODEL3_PROTOCOLS.md):
+Pipeline:
+  1. Single-feature AUC scan  (block if any > 0.85)
+  2. Correlation with target   (warn if |corr| > 0.5)
+  3. Shuffled-label test       (block if AUC > 0.55)
+  4. Lag-all-features test     (AUC should degrade)
+  5. 4-fold walk-forward with Random P95 / B&H / EMA benchmarks
+  6. Feature importance stability
+
+Pre-committed gates (MODEL3_PROTOCOLS.md):
   PASS if: mean_AUC >= 0.53, min_fold_AUC >= 0.51,
            Net_ROI > Random_P95, Calmar > BH_Calmar
 
-Exit 0 = PASS, Exit 1 = FAIL/BLOCKED
+Usage:
+  python scripts/evaluate_model3.py --family funding
+  python scripts/evaluate_model3.py --family basis
+
+Exit 0 = PASS, Exit 1 = FAIL/BLOCKED, Exit 2 = LEAKAGE
 """
 from __future__ import annotations
 import logging, sys, warnings
@@ -32,16 +39,31 @@ logger = logging.getLogger(__name__)
 # ── Paths ──────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
-DATA_PATH = CACHE / "btc_1h_phase10_funding.feather"
 
-# ── Features / Labels ──────────────────────────────────────────────────────
-FUNDING_FEATURES = [
-    "funding_last",
-    "funding_8h_zscore_30d",
-    "funding_8h_zscore_90d",
-    "funding_abs_zscore_30d",
-    "funding_sign",
-]
+# ── Feature / dataset registry — add new families here ────────────────────
+FAMILY_REGISTRY: dict[str, dict] = {
+    "funding": {
+        "dataset": CACHE / "btc_1h_phase10_funding.feather",
+        "features": [
+            "funding_last",
+            "funding_8h_zscore_30d",
+            "funding_8h_zscore_90d",
+            "funding_abs_zscore_30d",
+            "funding_sign",
+        ],
+    },
+    "basis": {
+        "dataset": CACHE / "btc_1h_phase10_basis.feather",
+        "features": [
+            "basis_now",
+            "basis_zscore_30d",
+            "basis_mean_24h",
+            "basis_change_24h",
+            "basis_compression",
+        ],
+    },
+}
+
 LABEL_COLS = ["triple_barrier_48h", "trend_48h", "trend_72h"]
 TARGET = "triple_barrier_48h"
 
@@ -329,7 +351,8 @@ def run_walkforward(df: pd.DataFrame, features: list[str]) -> dict:
 # Report
 # ─────────────────────────────────────────────────────────────────────────
 
-def print_report(results: dict, single_auc_df: pd.DataFrame, corr_df: pd.DataFrame) -> bool:
+def print_report(results: dict, single_auc_df: pd.DataFrame, corr_df: pd.DataFrame,
+                 family: str = "funding") -> bool:
     fold_results = results["fold_results"]
     importances  = results["importances"]
 
@@ -341,7 +364,7 @@ def print_report(results: dict, single_auc_df: pd.DataFrame, corr_df: pd.DataFra
     sep = "=" * 70
 
     logger.info(f"\n{sep}")
-    logger.info("PHASE 10 — MODEL 3 (FUNDING-ONLY) EVALUATION REPORT")
+    logger.info(f"PHASE 10 — MODEL 3 ({family.upper()}-ONLY) EVALUATION REPORT")
     logger.info(sep)
 
     # Per-fold table
@@ -404,12 +427,18 @@ def print_report(results: dict, single_auc_df: pd.DataFrame, corr_df: pd.DataFra
 
     logger.info(f"\n{'='*70}")
     if passed:
-        logger.info("DECISION: PASS — Funding features show edge. Proceed to Family 2 (Basis).")
+        next_step = {
+            "funding": "Proceed to Family 2 (basis-only) with explicit sign-off.",
+            "basis":   "Basis shows edge. Proceed to funding+basis combined or Phase 11.",
+        }.get(family, "Proceed per MODEL3_PROTOCOLS.md.")
+        logger.info(f"DECISION: PASS — {family} features show edge. {next_step}")
     else:
-        logger.info("DECISION: FAIL — Funding-only model does not meet gates.")
-        logger.info("  → Archive funding-only. Proceed to Phase 11 (Horizon Shift).")
-        logger.info("  → OR: Evaluate whether basis+OI together may rescue; per protocol,")
-        logger.info("    this requires explicit sign-off since funding alone failed.")
+        next_step = {
+            "funding": "Archive funding-only. Run basis-only (explicit sign-off granted).",
+            "basis":   "Archive Phase 10 entirely. Proceed to Phase 11 (Horizon Shift).",
+        }.get(family, "Archive. See MODEL3_PROTOCOLS.md for next step.")
+        logger.info(f"DECISION: FAIL — {family}-only model does not meet gates.")
+        logger.info(f"  → {next_step}")
     logger.info(f"{'='*70}\n")
 
     return passed
@@ -420,28 +449,54 @@ def print_report(results: dict, single_auc_df: pd.DataFrame, corr_df: pd.DataFra
 # ─────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    if not DATA_PATH.exists():
-        logger.error(f"Dataset not found: {DATA_PATH}")
-        logger.error("Run: conda run -n freqtrade python3 scripts/build_model3_exogenous_dataset.py")
+    import argparse
+    parser = argparse.ArgumentParser(description="Phase 10 Model 3 Evaluator")
+    parser.add_argument(
+        "--family",
+        default="funding",
+        choices=list(FAMILY_REGISTRY.keys()),
+        help="Feature family to evaluate in isolation (default: funding)",
+    )
+    args = parser.parse_args()
+    family = args.family
+
+    cfg = FAMILY_REGISTRY[family]
+    data_path = cfg["dataset"]
+    features  = cfg["features"]
+
+    if not data_path.exists():
+        logger.error(f"Dataset not found: {data_path}")
+        logger.error(
+            f"Run: conda run -n freqtrade python3 scripts/build_model3_exogenous_dataset.py "
+            f"--family {family}"
+        )
         sys.exit(1)
 
-    logger.info(f"Loading {DATA_PATH}")
-    df = pd.read_feather(DATA_PATH)
+    logger.info(f"Family: {family}")
+    logger.info(f"Loading {data_path}")
+    df = pd.read_feather(data_path)
     logger.info(f"Shape: {df.shape} | {df['date'].min()} → {df['date'].max()}")
+    logger.info(f"Features: {features}")
 
     # Safety: no label columns in features
-    leak = [c for c in FUNDING_FEATURES if c in LABEL_COLS]
+    leak = [c for c in features if c in LABEL_COLS]
     assert not leak, f"CRITICAL: label columns in features: {leak}"
 
+    # Verify all features exist in dataset
+    missing = [c for c in features if c not in df.columns]
+    if missing:
+        logger.error(f"Features missing from dataset: {missing}")
+        sys.exit(1)
+
     # Sanity 1 & 2 on full dataset
-    single_auc_df = sanity_single_feature_auc(df, FUNDING_FEATURES)
-    corr_df = sanity_correlation(df, FUNDING_FEATURES)
+    single_auc_df = sanity_single_feature_auc(df, features)
+    corr_df = sanity_correlation(df, features)
 
     # Walk-forward (includes shuffled-label + lag-all on fold 1)
-    results = run_walkforward(df, FUNDING_FEATURES)
+    results = run_walkforward(df, features)
 
     # Report + gate
-    passed = print_report(results, single_auc_df, corr_df)
+    passed = print_report(results, single_auc_df, corr_df, family=family)
 
     sys.exit(0 if passed else 1)
 
