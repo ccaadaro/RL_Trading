@@ -59,9 +59,13 @@ assert not leak_cols, f"CRITICAL LEAKAGE: Columns {leak_cols} are marked as both
 
 def compute_pnl(returns, positions, cost_bps=7.0):
     """Compute PnL, Sharpe, Calmar with transaction costs."""
-    # positions.shift(1) handles execution lag (trade at next close)
-    pos = positions.shift(1).fillna(0)
-    strategy_returns = returns * pos
+    # Ensure no nans in returns
+    ret_clean = returns.replace([np.inf, -np.inf], 0).fillna(0)
+    
+    # Ensure index alignment
+    pos_series = pd.Series(positions, index=returns.index)
+    pos = pos_series.shift(1).fillna(0)
+    strategy_returns = ret_clean * pos
     
     # Costs: 7bps per side (0.07% / 0.0007)
     # A position flip (1 to -1) is a 2.0 change in exposure -> 14bps cost
@@ -72,10 +76,10 @@ def compute_pnl(returns, positions, cost_bps=7.0):
     net_returns = strategy_returns - transaction_costs
     cumulative = (1 + net_returns).cumprod()
 
-    total_return = cumulative.iloc[-1] - 1 if len(cumulative) > 0 else 0
-    sharpe = net_returns.mean() / net_returns.std() * np.sqrt(252 * 24) if net_returns.std() != 0 else 0
+    total_return = cumulative.iloc[-1] - 1 if (len(cumulative) > 0 and not np.isnan(cumulative.iloc[-1])) else 0
+    sharpe = net_returns.mean() / net_returns.std() * np.sqrt(252 * 24) if (net_returns.std() != 0 and not np.isnan(net_returns.std())) else 0
     max_dd = (cumulative / cumulative.expanding().max()).min() - 1 if len(cumulative) > 0 else 0
-    calmar = total_return / abs(max_dd) if max_dd != 0 else 0
+    calmar = total_return / abs(max_dd) if (max_dd != 0 and not np.isnan(max_dd)) else 0
 
     return {
         'return': total_return,
@@ -86,17 +90,21 @@ def compute_pnl(returns, positions, cost_bps=7.0):
 
 def baseline_buy_hold(df_fold):
     """Buy-and-hold baseline."""
-    returns = df_fold['close'].pct_change()
+    returns = df_fold['close'].pct_change().fillna(0)
     positions = np.ones(len(returns))
-    return compute_pnl(returns, pd.Series(positions))
+    pnl = compute_pnl(returns, positions)
+    pnl['auc'] = 0.5
+    return pnl
 
 def baseline_ema_crossover(df_fold):
     """EMA12 > EMA26 entry signal."""
     ema_12 = df_fold['close'].ewm(span=12).mean()
     ema_26 = df_fold['close'].ewm(span=26).mean()
     signal = (ema_12 > ema_26).astype(int)
-    returns = df_fold['close'].pct_change()
-    return compute_pnl(returns, pd.Series(signal))
+    returns = df_fold['close'].pct_change().fillna(0)
+    pnl = compute_pnl(returns, signal)
+    pnl['auc'] = 0.5
+    return pnl
 
 def train_lgb_model(X_train, y_train, X_test):
     """Train LightGBM and predict on test set."""
@@ -178,7 +186,7 @@ def evaluate_model(df_test, y_pred, y_pred_proba, vol_thresh):
     accuracy = accuracy_score(y_true_binary, y_pred_valid)
 
     # PnL
-    pnl = compute_pnl(returns, pd.Series(positions))
+    pnl = compute_pnl(returns, positions)
 
     return {
         'auc': auc,
