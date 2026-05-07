@@ -134,8 +134,11 @@ def evaluate_model(df_test, y_pred, y_pred_proba):
     returns = df_test['close'].pct_change().reset_index(drop=True)
 
     # Positions: 48h hold strategy (only rebalance every 48 hours to match horizon)
+    # Vol-conditional entry: skip trades when realized_vol_24 is in bottom quartile
     positions = np.zeros(len(df_test))
     BARRIER_HOURS = 48
+    
+    vol_thresh = df_test['realized_vol_24'].quantile(0.25)
     
     current_pos = 0
     hold_timer = 0
@@ -147,10 +150,15 @@ def evaluate_model(df_test, y_pred, y_pred_proba):
             hold_timer -= 1
         else:
             # Re-evaluate
-            if y_pred[i] == 1:
-                current_pos = 1
+            is_low_vol = df_test['realized_vol_24'].iloc[i] < vol_thresh
+            
+            if is_low_vol:
+                current_pos = 0 # Skip entry in low vol
             else:
-                current_pos = -1
+                if y_pred[i] == 1:
+                    current_pos = 1
+                else:
+                    current_pos = -1
             
             positions[i] = current_pos
             hold_timer = BARRIER_HOURS - 1 # Hold for this bar + 47 more

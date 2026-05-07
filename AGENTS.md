@@ -313,3 +313,7 @@ Phase 9 (1h candles) was showing artificially high performance (AUC 0.97). A cri
 #### 12. **Horizon-Aligned Backtest (48h Holds)**
 - **File**: `scripts/evaluate_phase9_baselines.py`
 - **Fix**: Refactored the backtest to use a 48h-hold strategy, matching the model's prediction horizon. This reduced transaction costs by ~48x, showing that while the models are now nominally profitable (+21%), they still fail the AUC gate required for institutional deployment.
+
+#### 13. **Vol-Conditional Entry Filter**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Implemented a filter that skips new trade entries when `realized_vol_24` is in its bottom quartile. This targets the high-noise-to-signal regime, slightly improving baseline profitability without changing the underlying model's AUC rejection status.
