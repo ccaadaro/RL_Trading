@@ -155,10 +155,14 @@ def evaluate_model(df_test, y_pred, y_pred_proba):
             if is_low_vol:
                 current_pos = 0 # Skip entry in low vol
             else:
-                if y_pred[i] == 1:
+                # Asymmetric thresholds: only act on high confidence
+                prob = y_pred_proba[i]
+                if prob > 0.55:
                     current_pos = 1
-                else:
+                elif prob < 0.45:
                     current_pos = -1
+                else:
+                    current_pos = 0 # Sit flat on near-50/50
             
             positions[i] = current_pos
             hold_timer = BARRIER_HOURS - 1 # Hold for this bar + 47 more

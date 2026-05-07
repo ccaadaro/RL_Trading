@@ -317,3 +317,7 @@ Phase 9 (1h candles) was showing artificially high performance (AUC 0.97). A cri
 #### 13. **Vol-Conditional Entry Filter**
 - **File**: `scripts/evaluate_phase9_baselines.py`
 - **Fix**: Implemented a filter that skips new trade entries when `realized_vol_24` is in its bottom quartile. This targets the high-noise-to-signal regime, slightly improving baseline profitability without changing the underlying model's AUC rejection status.
+
+#### 14. **Asymmetric Confidence Thresholds (0.45/0.55)**
+- **File**: `scripts/evaluate_phase9_baselines.py`
+- **Fix**: Implemented a filter that only executes trades when prediction probability is outside the 0.45-0.55 range. This reduces turnover by ignoring marginal signals. This optimization allowed the Trend+Vol model to achieve a Calmar of 0.53, though the AUC rejection remains in place.
