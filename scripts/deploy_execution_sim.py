@@ -77,7 +77,7 @@ def main():
             np.maximum(df["risk_scale"].values, 1e-6)
         )
     else:
-        urgencies = np.abs(df["oof_pred"].fillna(0.5).values - 0.5) * 2.0
+        urgencies = np.abs(df["alpha_prob"].fillna(0.5).values - 0.5) * 2.0
     
     for i in range(len(df)):
         target_notional = target_sizes[i] * account_size

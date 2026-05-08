@@ -1,0 +1,20 @@
+nohup: ignoring input
+Launching battery for 1 thetas in parallel...
+Individual logs in logs/battery_theta_XM.log
+Fold 1 | AUC: 0.5000
+Fold 2 | AUC: 0.5158
+Fold 3 | AUC: 0.5478
+  [DONE] theta=$100M | AUC: 0.5212
+
+========================================================================================================================
+INSTITUTIONAL AUDIT: MOMENT OF TRUTH (Validation 2024 vs Holdout 2025)
+========================================================================================================================
+Theta    | AUC    | V_ROI    V_BH     V_P95    V_TAG  | H_ROI    H_BH     H_P95    H_TAG 
+------------------------------------------------------------------------------------------------------------------------
+$100M    | 0.5212 | 1.7223   1.1929   1.4175   PASS   | 0.1664   0.1008   0.2317   FAIL  
+
+Audit Definitions:
+  V_*: Validation Set (2024 Full Year)
+  H_*: Holdout Set (2025 Jan - Present)
+  P95: 95th percentile of 1,000 random simulations (Alpha threshold)
+  TAG: PASS if ROI > P95 (Statistically significant alpha)

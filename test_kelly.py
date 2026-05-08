@@ -6,9 +6,9 @@ sizer = FractionalKellySizer(kelly_fraction=0.5, max_drawdown=0.10, min_risk_sca
 
 # Sample a row with pred > 0.65
 df = pd.read_feather('cache/dollar_bars_btc_2000000_sizing.feather')
-df_high = df[df['oof_pred'] > 0.65].iloc[0]
+df_high = df[df['alpha_prob'] > 0.65].iloc[0]
 
-pred = pd.Series([df_high['oof_pred']])
+pred = pd.Series([df_high['alpha_prob']])
 reg = pd.Series(['bull_calm'])
 turb = pd.Series([df_high['turbulence_score']])
 athr = pd.Series([5.0])

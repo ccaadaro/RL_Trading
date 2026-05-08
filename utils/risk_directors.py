@@ -124,6 +124,22 @@ class HMMRegimeModel:
             print(f"[HMM] Model fitted. Score: {best_score:.2f} | States Vol Map: {self.state_map}")
         return self
 
+    def predict_current_state(self, df_tail: pd.DataFrame) -> int:
+        """
+        Infers the canonical state ID for the latest observation.
+        :param df_tail: Last N bars.
+        """
+        if self.model is None:
+            return -1
+            
+        X = df_tail[self.features].fillna(0).values
+        try:
+            hidden_states = self.model.predict(X)
+            last_orig_state = hidden_states[-1]
+            return self.state_map.get(last_orig_state, -1)
+        except Exception:
+            return -1
+
     def predict_current(self, df_tail: pd.DataFrame) -> str:
         """
         Infers the regime for the latest observation using online sequence inference.
@@ -154,7 +170,7 @@ class HMMRegimeModel:
             return "unknown"
         except Exception as e:
             # BUG-02 FIX: Never use bare except. Log the real error so bugs are visible.
-            logger.warning("[HMM] predict_current failed: %s", e, exc_info=False)
+            logger.warning("[HMM] predict_current failed: %s", e, exc_info=True)
             return "unknown"
 
     def fit_predict(self, df: pd.DataFrame, features: List[str]) -> Tuple[pd.Series, pd.Series]:
