@@ -1,6 +1,13 @@
 """
 InstitutionalDollarStrategy.py  (Phase 8 — ZMQ Subscriber Shell)
 
+*******************************************************************************
+* [RESEARCH CLOSED] — NOT DEPLOYABLE                                          *
+* Status: ARCHIVED (2026-05-08)                                               *
+* BTC P&L project reached a terminal kill criterion after Phase 12B final audit.*
+* No stable directional alpha or risk-adjusted BTC exposure strategy found.    *
+*******************************************************************************
+
 Architecture:
     market_data_daemon.py  ──ZMQ PUB──►  InstitutionalDollarStrategy
                                               └── _ZmqListener thread

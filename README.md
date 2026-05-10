@@ -1,56 +1,137 @@
-# Institutional BTC Trading Strategy and Research
+# Institutional BTC Trading — Research Repository
 
-A professional quantitative trading research repository focused on BTC/USDT alpha generation and risk-managed exposure. This project encompasses a multi-phase research pipeline evaluating microstructure signals, trend-following models, and exogenous market-structure variables.
+A systematic, forensic research project investigating directional alpha and risk-managed BTC/USDT exposure. Twelve research phases were executed under strict pre-committed performance gates (AUC, Calmar ratio, Net ROI vs. Random P95). **All phases were falsified. The project is archived.**
 
-## Project Overview
+---
 
-The repository contains the InstitutionalDollarStrategy, a production-grade Freqtrade strategy, along with a comprehensive suite of research scripts for data engineering, model evaluation, and backtesting. The project transitioned through 12 research phases, systematically testing and falsifying various alpha hypotheses to identify stable, tradeable signals in modern crypto markets.
+## Verdict
 
-## Research Phases and Results
+> No stable directional alpha or risk-adjusted BTC exposure strategy survived leakage-safe, cost-realistic walk-forward validation at 14 bps round-trip cost. Buy-and-hold remained unbeaten across all regimes and horizons tested.
 
-The project followed a rigorous, forensic research protocol with pre-committed performance gates (AUC, Calmar, Net ROI vs. Random P95).
+---
 
-### Phase 8: Microstructure-Only Alpha (Falsified)
-Tested $50M dollar-bar microstructure signals (CVD, aggressor ratio, whale order flow). Concluded that microstructure is predictive at the millisecond level but lacks sufficient signal-to-noise ratio at bar-completion latency (~1-2 min) to cover execution costs.
+## Repository Structure
 
-### Phase 9: Trend-Following OHLCV (Falsified)
-Evaluated 1h candle trend features (EMA/HMA slopes, realized volatility). Initial high performance was identified as data leakage. Corrected evaluation showed that trend-only alpha is insufficient to cover trading frictions at hourly resolution.
+```
+.
+├── InstitutionalDollarStrategy.py  # Main Freqtrade strategy (archived, not deployable)
+├── scripts/                        # Data pipeline, training, and evaluation scripts
+│   ├── build_*.py                  # Dataset construction (dollar bars, OHLCV, exogenous)
+│   ├── train_*.py                  # Model training (LightGBM, RL, ensemble stacking)
+│   ├── evaluate_*.py               # Walk-forward evaluation per phase
+│   ├── download_*.py               # Raw data acquisition (Binance agg-trades, futures)
+│   ├── monitor_*.py                # Live shadow-mode monitoring
+│   └── *.sh                        # Shell launch helpers
+├── utils/                          # Shared library (signal features, risk, position sizing)
+│   ├── signal_features.py
+│   ├── risk_directors.py           # HMM regime model, Mahalanobis turbulence
+│   ├── position_sizer.py           # Fractional Kelly sizing
+│   ├── filters.py                  # Symmetric CUSUM filter
+│   └── data_providers.py           # ZMQ dollar-bar + Freqtrade candle providers
+└── docs/                           # Research notes, phase reports, architecture docs
+    ├── PHASE12_RISK_MANAGED_BTC.md
+    ├── MODEL3_PROTOCOLS.md
+    ├── PIPELINE_ARCHITECTURE.md
+    ├── EXPERIMENTAL_LOG.md
+    └── ...
+```
 
-### Phase 10: Exogenous Alpha (Falsified)
-Investigated perp-spot basis and funding rates. While basis carries weak directional information, the signal is consumed by execution costs at high rebalancing frequencies.
+---
 
-### Phase 11: Horizon Shift (Falsified)
-Tested longer holding horizons (7-day holds) to reduce turnover and cost drag. The hypothesis that a longer horizon would make weak signals tradeable was not supported by cost-realistic walk-forward validation.
+## Research Phases
 
-### Phase 12: Risk-Managed BTC Exposure (Terminal)
-Pivoted to dynamic exposure management (volatility targeting, drawdown-aware scaling). Successfully reduced max drawdown by 30-33%, providing significant bear protection, though Buy and Hold remains the superior strategy in strong bull regimes.
+| Phase | Hypothesis | Signal | Verdict | Key Finding |
+|-------|-----------|--------|---------|-------------|
+| 8 | $50M dollar-bar microstructure alpha | CVD, aggressor ratio, whale order flow | **FAIL** | Predictive at ms latency; signal collapses at bar-completion (~1–2 min) |
+| 9 | 1h trend-following OHLCV | EMA/HMA slopes, realized volatility | **FAIL** | Initial AUC lift was data leakage; corrected evaluation found no edge |
+| 10 | Exogenous market structure | Perp-spot basis, funding rates | **FAIL** | Basis carries weak directional info; consumed by execution costs |
+| 11 | Horizon shift (7-day holds) | All prior signals, longer window | **FAIL** | Longer horizon does not rescue weak signals through cost dilution |
+| 12 | Risk-managed BTC exposure | Volatility targeting, drawdown scaling | **FAIL** | Drawdown cut 30–33%; underperforms buy-and-hold in bull regimes |
 
-## Technical Architecture
+### Methodology
 
-### Core Components
-- InstitutionalDollarStrategy: Main Freqtrade strategy implementing the signal engine and risk controls.
-- Market Data Daemon: ZMQ-based service for real-time microstructure data ingestion.
-- Signal Engine: Regime-aware processor using Hidden Markov Models (HMM) for market context.
-- Telemetry Pipeline: High-performance ZMQ PUB/SUB for real-time monitoring and diagnostics.
+- **Walk-forward validation**: 4-fold temporal separation with strict purging and embargo windows.
+- **Leakage forensics**: Comprehensive timestamp and causality checks on all exogenous features.
+- **Cost model**: 14 bps round-trip, integrated into all P&L calculations.
+- **Kill criteria**: Pre-committed before each phase (no post-hoc gate adjustment).
 
-### Research Framework
-- Automated Walk-Forward Validation: 4-fold temporal separation with strict purging and embargoing to prevent leakage.
-- Forensic Auditing: Comprehensive timestamp and causality checks for all exogenous features.
-- Realistic Simulation: Integrated transaction costs (14bps round-trip) and execution latency modeling.
+---
 
-## Current Status
+## Strategy Architecture (Archived)
 
-Research Closed. Across all phases, no stable directional alpha or risk-adjusted exposure strategy surpassed the pre-committed institutional gates after leakage-safe, cost-realistic evaluation. The project is currently in archival status.
+`InstitutionalDollarStrategy.py` is a **thin Freqtrade shell**. All intelligence runs outside the polling loop:
+
+```
+market_data_daemon.py ──ZMQ PUB──► InstitutionalDollarStrategy
+                                         └── _ZmqListener (background thread)
+                                                  │
+                                          on each Dollar Bar:
+                                          Features → LightGBM → HMM → Kelly sizing
+                                                  │
+                                          _latest_signal (thread-safe dict)
+                                                  │
+                                         populate_entry/exit_trend()
+                                                  │
+                                         Freqtrade order routing
+```
+
+**Not compatible with native Freqtrade backtesting.** Designed for `--dry-run` or live use only.
+
+### Core Modules
+
+| Module | Role |
+|--------|------|
+| `utils/signal_features.py` | OHLCV feature engineering |
+| `utils/risk_directors.py` | HMM regime detection, Mahalanobis turbulence filter |
+| `utils/position_sizer.py` | Fractional Kelly position sizing |
+| `utils/filters.py` | Symmetric CUSUM entry filter |
+| `utils/data_providers.py` | ZMQ dollar-bar ingestion + Freqtrade candle fallback |
+
+---
+
+## Running the Research Pipeline
+
+Each phase follows the same three-step pattern:
+
+```bash
+# 1. Build dataset
+python scripts/build_dollar_bars.py          # Phase 8 (microstructure)
+python scripts/build_1h_dataset.py           # Phase 9 (trend)
+python scripts/build_model3_exogenous_dataset.py  # Phase 10 (exogenous)
+
+# 2. Train model
+python scripts/train_dollar_alpha.py
+python scripts/train_signal_walkforward.py
+
+# 3. Evaluate
+python scripts/evaluate_walkforward.py
+python scripts/evaluate_phase12_risk_managed_btc.py
+```
+
+Data acquisition (requires Binance API or local data):
+```bash
+python scripts/download_binance_futures_data.py
+python scripts/download_aggtrades.py
+python scripts/process_aggtrades_to_bars.py
+```
+
+---
 
 ## Tech Stack
 
-- Core Logic: Python 3.x
-- Trading Framework: Freqtrade
-- Machine Learning: LightGBM, Scikit-learn
-- Data Processing: Pandas, NumPy, Feather
-- Networking: ZeroMQ (ZMQ)
-- Optimization: Optuna
+| Layer | Tools |
+|-------|-------|
+| Trading framework | [Freqtrade](https://www.freqtrade.io/) |
+| ML models | LightGBM, Scikit-learn |
+| RL training | CleanRL, Stable-Baselines3 (SAC, TQC) |
+| Regime detection | hmmlearn (Hidden Markov Models) |
+| Data processing | Pandas, NumPy, Feather, Parquet |
+| Real-time transport | ZeroMQ (ZMQ PUB/SUB) |
+| Hyperparameter search | Optuna |
+| Language | Python 3.12 |
+
+---
 
 ## Disclaimer
 
-This repository is for research and educational purposes only. Nothing in this project constitutes financial advice. Trading cryptocurrencies involves significant risk of loss.
+This repository is for research and educational purposes only. Nothing here constitutes financial advice. Trading cryptocurrencies carries significant risk of loss. Past research results do not indicate future performance.

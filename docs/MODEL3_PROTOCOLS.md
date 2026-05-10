@@ -12,7 +12,7 @@ _Version 1.0 — 2026-05-07_
 | Phase 9 | 1h OHLCV trend-only LightGBM | AUC > 0.55, Calmar > B&H after costs | FAIL — corrected AUC ≈ 0.54, returns collapse to −81% with costs | Archive. Trend-only OHLCV insufficient for cost-adjusted alpha. |
 | **Phase 10** | Exogenous alpha: funding, basis, OI | AUC ≥ 0.53, Net ROI > Random P95, Calmar > B&H | **ARCHIVED** — funding AUC 0.506, basis AUC 0.535 (1 gate pass, 3 fail). No economic edge post-friction. | Phase 10 closed. Proceed to Phase 11. |
 | **Phase 11** | Horizon shift: daily candles, 7d holds | AUC ≥ 0.52, economic edge after costs | **NEXT** | Activate after Phase 10 archive. |
-| Phase 12 | Strategic decision point | — | PENDING | — |
+| Phase 12 | Risk-managed BTC exposure (Rule-based) | Calmar > B&H AND DD reduction ≥ 25% | **ARCHIVED** — Best Calmar 1.18 vs B&H 1.61 (Daily Rebalance) | Phase 12B closed. BTC P&L Project TERMINATED. |
 
 ---
 
@@ -230,13 +230,18 @@ A model **passes** only if all of the following are simultaneously true:
 
 ---
 
-## Phase 12 — Strategic Decision (PENDING)
+## Phase 12 — Strategic Decision (TERMINAL)
+
+**Status**: [PROJECT CLOSED] - 2026-05-08
 
 If Phase 10 and Phase 11 both fail: **no Phase 13 exists**.
 
+**Final Result**: Rule-based de-risking (Phase 12B) failed to beat the Buy & Hold Calmar ratio even with daily rebalancing. The "cost of protection" exceeds the drawdown benefit on a risk-adjusted basis.
+
+**RESEARCH CLOSED — NOT DEPLOYABLE**
+
 Three honest options:
-- **A**: Different instrument (alts, DeFi, basis trades)
-- **B**: Different objective (vol-targeted long-BTC for Calmar, not raw ROI)
+- **A**: Different instrument (Cross-sectional crypto factor ranking across 50+ altcoins)
 - **C**: Stop — treat as successful infrastructure and research project
 
 ---
